@@ -1,0 +1,33 @@
+# Stata to R map {.unnumbered}
+
+Only commands that the scripts in this workflow use are listed.
+
+| Stata or epicalc command | R equivalent | Chapter |
+|---|---|---|
+| `import excel` | `readxl::read_excel()` | 2 |
+| `tab sex` (epicalc `tab1`) | `epicalc::tab1()` | 3 |
+| `tab treatment sex, row col` | `epicalc::tabpct()` | 3 |
+| `table1` style baseline table (epicalc `tableStack`) | `epicalc::tableStack()` | 3 |
+| `tabstat fbs, by(group) stat(mean sd n)` | `epicalc::aggregate.numeric()` | 3 |
+| `histogram fbs, by(month)` | `ggplot2::geom_histogram()` with `facet_wrap()` | 3 |
+| `graph box fbs, over(month)` | `ggplot2::geom_boxplot()` | 3 |
+| `twoway scatter fbs dm_duration` | `ggplot2::geom_point()` | 5 |
+| `twoway line mean_fbs month` | `ggplot2::geom_line()` | 5 |
+| `twoway lowess fbs time` | `ggplot2::geom_smooth(method = "loess")` | 5 |
+| `twoway lfit fbs time` | `ggplot2::geom_smooth(method = "lm")` | 5 |
+| `twoway qfit fbs time` | `ggplot2::geom_smooth(method = "lm", formula = y ~ poly(x, 2))` | 5 |
+| `graph bar (mean) fbs, over(month)` | `ggplot2::geom_col()` | 5 |
+| `graph export fig.tif` | `ggplot2::ggsave()` | 5 |
+| `spearman var1 var2` | `rstatix::cor_test(method = "spearman")` | 3 |
+| `duplicates drop` | `dplyr::distinct()` and `dplyr::slice_head()` | 2 |
+| `destring` | `readr::parse_number()` | 2 |
+| `gen`, `replace` | `dplyr::mutate()` with `if_else()` and `case_when()` | 2 |
+| `keep if`, `drop if` | `dplyr::filter()` | 2 |
+| `keep`, `sort` | `dplyr::select()` and `dplyr::arrange()` | 2 |
+| `reshape long` | `tidyr::pivot_longer()` | 2 |
+| `reshape wide` | `tidyr::pivot_wider()` | 1 |
+| `date()` and `mdy()` | `lubridate::dmy()` and `lubridate::ymd()` | 2 |
+| `set seed`, `rnormal()` | `set.seed()` and `rnorm()` | 1 |
+| `assert` | `stopifnot()` | 1 |
+| `save` | `saveRDS()` | 2 |
+| `table1_mc` (user written baseline table) | `gtsummary::tbl_summary()` | 4 |

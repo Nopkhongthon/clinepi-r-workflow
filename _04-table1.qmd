@@ -1,0 +1,70 @@
+# Table 1 with gtsummary {#sec-table1}
+
+```{r}
+#| label: setup-table1
+#| include: false
+source("_common.R")
+load_steps("code/3_table1.r", "table1")
+```
+
+Almost every clinical paper starts with a baseline table. I build it in one call and then adjust it. Nothing in the table is typed by hand.
+
+The script is `code/3_table1.r`.
+
+## Step 1: packages and paths
+
+Three packages do the work. `dplyr` keeps the baseline visit, `gtsummary` builds the table and `gt` sends it to Word.
+
+```{r}
+#| label: table1-step-1
+#| message: false
+```
+
+## Step 2: one row per patient
+
+Table 1 describes patients as they entered the trial, so it uses the month 0 visit only. The long data repeat age and sex on every visit, and counting every row would count each patient up to five times.
+
+```{r}
+#| label: table1-step-2
+```
+
+## Step 3: the basic table
+
+First the default. `tbl_summary()` chooses a statistic for each variable by itself. I run this alone and look at it before deciding what to change.
+
+```{r}
+#| label: table1-step-3
+```
+
+## Step 4: labels, statistics and missing data
+
+Now I change only what I decided on purpose. Mean and standard deviation suit the variables that looked symmetric in the histograms of chapter 3. Median and quartiles suit diabetes duration, which has a long right tail. Missing data get their own column.
+
+```{r}
+#| label: table1-step-4
+```
+
+## Step 5: overall column, headers and title
+
+I add an overall column and put the group size in each header. There are no p values. In a randomised trial any baseline difference is chance by design, so a test answers a question nobody asked.
+
+```{r}
+#| label: table1-step-5
+```
+
+## Step 6: check
+
+The size in each column header comes from the data, so I check it against the numbers I already know.
+
+```{r}
+#| label: table1-step-6
+```
+
+## Step 7: save
+
+The table is saved as an R object to restyle later, and as a Word file to paste into a report. Every number was computed by gtsummary, so if the data change, re-running the script changes the table.
+
+```{r}
+#| label: table1-step-7
+```
+

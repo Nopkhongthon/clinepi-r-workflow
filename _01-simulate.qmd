@@ -1,0 +1,107 @@
+# Simulating the trial {#sec-sim}
+
+```{r}
+#| label: setup-sim
+#| include: false
+source("_common.R")
+load_steps("code/0_simulate_data.r", "sim")
+```
+
+I start every teaching example by simulating the data. A simulation lets me write down the true answer first and then check that my analysis finds it. It also means no real patient is ever involved.
+
+The script is `code/0_simulate_data.r`. Each section below is one step of that script, loaded straight from the file, so the code you see is the code that ran. Output appears under each chunk.
+
+## Step 1: packages, paths and the truth
+
+Everything starts with a short list of settings. I call them the truth, because the data are built from them and a correct analysis should find them again. Change one number here and every file further down changes with it.
+
+```{r}
+#| label: sim-step-1
+#| message: false
+```
+
+```{r}
+#| echo: false
+truth_table()
+```
+
+The trial has `r n_patients` patients and visits at months `r paste(months, collapse = ", ")`. Drug A lowers fasting blood sugar (FBS) by `r drop_a` mg/dL and drug B by `r drop_b` mg/dL. The true treatment effect is therefore `r drop_b - drop_a` mg/dL in favour of drug B once the drugs have fully worked, and about `r round((drop_b - drop_a) * (1 - exp(-max(months) / speed)))` mg/dL by month `r max(months)`. About 63% of each drop is done after `r speed` months. The three standard deviations at the bottom of the table are what make repeated visits of the same patient resemble each other.
+
+## Step 2: one row per patient, the baseline characteristics
+
+Next I make one row per patient. Age, BMI and diabetes duration come from simple random draws. Two extra columns hold each patient's own deviation from the average. A real clinic never sees them, but they are the reason visits of one patient are correlated.
+
+```{r}
+#| label: sim-step-2
+```
+
+```{r}
+#| echo: false
+peek(df)
+```
+
+There are `r nrow(df)` patients, `r sum(df$treatment == "A")` on drug A and `r sum(df$treatment == "B")` on drug B.
+
+## Step 3: one row per patient per visit
+
+Every patient now gets all five visits. A cross join pairs each patient with each month. Dropout comes later, in step 5.
+
+```{r}
+#| label: sim-step-3
+```
+
+The table has `r nrow(df)` rows, which is `r n_patients` patients times `r length(months)` visits.
+
+## Step 4: the FBS value at each visit
+
+This step creates the outcome. The drug effect grows over the first months and then levels off. Age, BMI, diabetes duration and sex shift the starting level. The patient's own deviations and the visit to visit noise are added last.
+
+```{r}
+#| label: sim-step-4
+```
+
+## Step 5: patients drop out
+
+Patients now leave the study. Someone whose sugar stayed high at the last visit is more likely to stop coming. I build this in on purpose, so that the missing data are not missing completely at random. They are missing at random (MAR), because dropout depends on the last FBS value we saw.
+
+```{r}
+#| label: sim-step-5
+```
+
+After dropout `r nrow(df)` visits remain, and `r sum(df$month == 12)` of the `r n_patients` patients reach month 12.
+
+## Step 6: keep only what a real study would record
+
+Now I delete every column that only the simulation knows. What is left is what a clinic could have measured.
+
+```{r}
+#| label: sim-step-6
+```
+
+```{r}
+#| echo: false
+peek(df)
+```
+
+## Step 7: check
+
+A check block stops the script if the data look wrong. Silent errors are the dangerous ones, so every script of this workflow ends its work with a check.
+
+```{r}
+#| label: sim-step-7
+```
+
+## Step 8: save, long and wide
+
+The data are saved twice. The long file has one row per visit and suits a mixed model. The wide file has one row per patient and looks like the sheet a clinic types into Excel.
+
+```{r}
+#| label: sim-step-8
+```
+
+The long file has `r nrow(readr::read_csv(path_long, show_col_types = FALSE))` rows and the wide file has `r nrow(readr::read_csv(path_wide, show_col_types = FALSE))` rows.
+
+
+## What we have now
+
+A clean "truth" dataset exists in two layouts. The next chapter makes a dirty Excel copy of it and cleans it up again.

@@ -1,0 +1,33 @@
+project:
+  type: default
+  output-dir: docs
+  execute-dir: project
+  render:
+    - index.qmd
+  resources:
+    - .nojekyll
+
+execute:
+  freeze: false
+  echo: true
+  warning: false
+
+knitr:
+  opts_chunk:
+    message: true    # execute: warning: false would otherwise hide message() too
+
+format:
+  html:
+    theme: cosmo   # a plain Bootstrap theme; change this one word to restyle
+    embed-resources: true   # styles, scripts and plots live inside each .html file
+    code-copy: true
+    code-overflow: wrap
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    toc-title: Contents
+    number-sections: true
+    fig-width: 7
+    fig-height: 4
+    fig-dpi: 110
+    df-print: default

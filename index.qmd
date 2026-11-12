@@ -1,0 +1,27 @@
+---
+title: "A clinical-epidemiology workflow in R"
+subtitle: "Real code and real output, one step at a time"
+date-modified: last-modified
+language:
+  title-block-modified: "Last updated"
+engine: knitr
+---
+
+<!-- One page. Each section below lives in its own _*.qmd file; the leading
+     underscore stops Quarto from rendering those files on their own. -->
+
+{{< include _00-welcome.qmd >}}
+
+{{< include _01-simulate.qmd >}}
+
+{{< include _02-clean.qmd >}}
+
+{{< include _03-explore.qmd >}}
+
+{{< include _04-table1.qmd >}}
+
+{{< include _05-ggplot.qmd >}}
+
+{{< include _06-next.qmd >}}
+
+{{< include _a-stata-map.qmd >}}

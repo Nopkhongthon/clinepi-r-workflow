@@ -1,0 +1,128 @@
+# Exploring the data {#sec-explore}
+
+```{r}
+#| label: setup-explore
+#| include: false
+source("_common.R")
+load_steps("code/2_basic_explore.r", "explore")
+```
+
+Before any model I look at the data with simple tables and plots. Most of the tables come from epicalc, the package that brings Stata style commands to R. The pictures come from ggplot2.
+
+The script is `code/2_basic_explore.r`. It reads the cleaned file from chapter 2 and changes nothing in it.
+
+## Step 1: packages and paths
+
+Here I load epicalc, which gives Stata style commands in R, plus dplyr, tidyr, ggplot2 and rstatix. Several of these packages define a function called `select()` or `recode()`. The package loaded last wins, so every call in the script names its package.
+
+```{r}
+#| label: explore-step-1
+#| message: false
+```
+
+## Step 2: load the cleaned data
+
+The baseline characteristics repeat on every visit row, so I describe them from the month 0 rows only. That gives one row per patient. epicalc was written before tibbles, so it gets a plain data frame.
+
+```{r}
+#| label: explore-step-2
+```
+
+## Step 3: baseline, the categorical variable
+
+`tab1()` is Stata's `tab`. It prints a frequency table with counts and percentages, with and without the missing, and draws a bar chart. The bars are drawn sideways, because epicalc then leaves more room beside the longest bar and its count label is not cut off. `tabpct()` is the two-way table with row and column percentages. In a randomised trial the arms differ at baseline only by chance, so I look at balance by eye and show no p values.
+
+```{r}
+#| label: explore-step-3
+#| fig-width: 6
+#| fig-height: 4
+```
+
+## Step 4: baseline table, every variable by arm
+
+`tableStack()` builds a whole baseline table in one call. Left on automatic, it chooses median and interquartile range by a normality test. I prefer to look at the histograms of step 7 and name the skewed variable myself. Diabetes duration has a long right tail, so it gets the median.
+
+```{r}
+#| label: explore-step-4
+```
+
+## Step 5: who came to each visit
+
+The dropout pattern is visits by month and arm. A mixed model keeps every visit a patient did attend. A patient who left at month 6 still counts for months 0 and 3.
+
+```{r}
+#| label: explore-step-5
+```
+
+## Step 6: FBS at each visit, by arm
+
+This table is the trial in numbers. Both arms start near the same level, and then each one falls. epicalc's `aggregate()` takes several statistics at once.
+
+```{r}
+#| label: explore-step-6
+```
+
+## Step 7: are the baseline variables roughly normal? Judge by eye
+
+Before choosing how to summarise each baseline number, I look at its shape. The histograms and box plots below cover age, body mass index and diabetes duration. Each panel has its own scale, because the three variables have different units. Age and body mass index are roughly symmetric, with the median near the middle of the box. Diabetes duration has a long right tail, with a few long durations marked as dots. That is why it gets the median later on and the other two get the mean.
+
+```{r}
+#| label: explore-step-7
+#| fig-width: 9
+#| fig-height: 3.2
+```
+
+## Step 8: is FBS roughly normal? Judge by eye
+
+I judge normality by eye and not by a test. A histogram and a box plot of the variable show the shape directly, and a formal test mostly reflects the sample size. Panels share one scale, so they stay comparable, and each panel draws its own axes.
+
+```{r}
+#| label: explore-step-8
+#| fig-width: 10
+#| fig-height: 3.2
+```
+
+## Step 9: every patient's own line
+
+The spaghetti plot shows why a mixed model is needed. Each grey line is one patient. They start at different heights, which is the random intercept, and fall at different speeds, which is the random slope. The thick lines are the arm averages.
+
+```{r}
+#| label: explore-step-9
+#| fig-width: 8
+#| fig-height: 4
+```
+
+## Step 10: visits of the same patient are correlated
+
+Now one row per patient again, with one FBS column per visit. If visits were independent, Spearman's rho between visits would be near zero. A patient who is high at month 0 tends to stay high. That correlation is what a plain regression ignores and a mixed model handles.
+
+```{r}
+#| label: explore-step-10
+```
+
+## Step 11: did the patients who left differ?
+
+If the patients who dropped out had higher sugar, an analysis of completers would make both drugs look better than they are. This table compares the baseline FBS of completers and leavers.
+
+```{r}
+#| label: explore-step-11
+```
+
+At baseline, patients who left before month 12 had a mean FBS of `r round(mean(df_dropout$fbs[!df_dropout$completed], na.rm = TRUE))` mg/dL, against `r round(mean(df_dropout$fbs[df_dropout$completed], na.rm = TRUE))` mg/dL for patients who stayed. Those who left started higher, so dropout is related to the outcome and completers alone would give a flattering picture.
+
+## Step 12: check
+
+The usual check against the numbers I already know.
+
+```{r}
+#| label: explore-step-12
+```
+
+## Step 13: save
+
+All the result tables go into one RDS list for later use.
+
+```{r}
+#| label: explore-step-13
+```
+
