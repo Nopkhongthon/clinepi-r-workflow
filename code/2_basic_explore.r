@@ -10,7 +10,7 @@
 #%%@note step 1: packages and paths -------------------------------------------
 
 # epicalc left CRAN in 2015. A maintained version is hosted here:
-# install.packages("epicalc", repos = "https://medipe.psu.ac.th/epicalc")
+# install.packages("epicalc", repos = c("https://medipe.psu.ac.th/epicalc", "https://cloud.r-project.org"))
 # install.packages(c("dplyr", "tidyr", "ggplot2", "rstatix"))
 
 library(epicalc)  # tab1(), tabpct(), tableStack(), aggregate(): the tables

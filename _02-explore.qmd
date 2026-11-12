@@ -1,0 +1,130 @@
+# Exploring the data {#sec-explore}
+
+```{r}
+#| label: setup-explore
+#| include: false
+source("_common.R")
+load_steps("code/2_basic_explore.r", "explore")
+```
+
+Before any model I look at the data with simple tables and plots. Most of the tables come from epicalc, the package that brings Stata style commands to R. The pictures come from ggplot2.
+
+The script is `code/2_basic_explore.r`. It reads the cleaned file from chapter 1, builds the result tables and saves them as `output/fbs_explore.rds`. It changes nothing in the data. A later script, not written yet, will answer the main question with a mixed model. Does FBS fall more on drug B than on drug A over 12 months?
+
+## Step 1: packages and paths
+
+Five packages are loaded, and each has one job. The epicalc package [@R-epicalc] gives `tab1()`, `tabpct()`, `tableStack()` and `aggregate()`, which make the tables. It left CRAN in 2015, and a maintained version is hosted at https://medipe.psu.ac.th/epicalc. The script keeps the `install.packages()` lines for it and for the other packages as comments. The dplyr package [@R-dplyr] supplies `filter()` and `mutate()`. The tidyr package [@R-tidyr] supplies `pivot_wider()`, which gives one FBS column per visit in step 10. The ggplot2 package [@R-ggplot2] draws the pictures. The rstatix package [@R-rstatix] supplies `cor_test()`, which gives every Spearman pair with its p value, and epicalc has no such function.
+
+Several of these packages define the same function name. The epicalc, MASS, dplyr and rstatix packages each have a `select()`. The epicalc package loads MASS by itself. The epicalc and dplyr packages each have a `recode()` and a `rename()`. The package loaded last wins, which is easy to get wrong, so every call in the script names its package.
+
+```{r}
+#| label: explore-step-1
+#| message: false
+```
+
+## Step 2: load the cleaned data
+
+The baseline characteristics repeat on every visit row, so I describe them from the month 0 rows only. That gives one row per patient. The epicalc package was written before tibbles, so it gets a plain data frame.
+
+```{r}
+#| label: explore-step-2
+```
+
+## Step 3: baseline, the categorical variable
+
+`tab1()` is Stata's `tab sex`. It prints a frequency table with counts and percentages, with and without the missing, and draws a bar chart. The setting `horiz = TRUE` draws the bars sideways. The package then leaves 20% of extra room beside the longest bar, where upright bars get only 10%, so the count label of the longest bar is not cut off. The function fixes the axis limit itself, so a `ylim` argument is refused. `tabpct()` is Stata's `tab treatment sex, row col`, the two-way table with row and column percentages. In a randomised trial the arms differ at baseline only by chance, so I look at balance by eye and show no p values. CONSORT advises against them.
+
+```{r}
+#| label: explore-step-3
+#| fig-width: 6
+#| fig-height: 4
+```
+
+## Step 4: baseline table, every variable by arm
+
+`tableStack()` builds a whole baseline table in one call. It gives n (%) for factors and mean (SD) for numbers. The setting `test = FALSE` drops the p values, for the same CONSORT reason as in step 3. Left on automatic, the function picks median and interquartile range with a Shapiro test. A good rule is to judge by eye instead, so I look at the histograms of step 7 and name the skewed variable myself. Diabetes duration has a long right tail, so it gets the median.
+
+```{r}
+#| label: explore-step-4
+```
+
+## Step 5: who came to each visit
+
+The dropout pattern is visits by month, in the rows, and by arm, in the columns. A mixed model keeps every visit a patient did attend. A patient who left at month 6 still counts for months 0 and 3.
+
+```{r}
+#| label: explore-step-5
+```
+
+## Step 6: FBS at each visit, by arm
+
+This table is the trial in numbers. Both arms start near the same level, and then I watch how far each one falls. The `aggregate()` function of epicalc takes several statistics at once in its `FUN` argument.
+
+```{r}
+#| label: explore-step-6
+```
+
+## Step 7: are the baseline variables roughly normal? Judge by eye
+
+Before choosing how to summarise each baseline number, I look at its shape. The histograms and box plots below cover age, body mass index and diabetes duration. Each panel has its own scale and its own axes, set with `scales = "free"`, because the three variables have different units. Age and body mass index are roughly symmetric, with the median near the middle of the box. Diabetes duration has a long right tail, with a few long durations marked as dots. That is why it gets the median later on and the other two get the mean.
+
+```{r}
+#| label: explore-step-7
+#| fig-width: 9
+#| fig-height: 3.2
+```
+
+## Step 8: is FBS roughly normal? Judge by eye
+
+I judge normality by eye and not by a test. A histogram and a box plot of the variable show the shape directly, and a formal test mostly reflects the sample size. The same rule holds for FBS itself, at every visit. The setting `axes = "all"` draws the x and y axis on every panel, not just the outer ones. The panels still share one scale, so they stay comparable.
+
+```{r}
+#| label: explore-step-8
+#| fig-width: 10
+#| fig-height: 3.2
+```
+
+## Step 9: every patient's own line
+
+The spaghetti plot shows why a mixed model is needed. Each grey line is one patient. They start at different heights, which is the random intercept, and fall at different speeds, which is the random slope. The thick lines are the arm averages.
+
+```{r}
+#| label: explore-step-9
+#| fig-width: 8
+#| fig-height: 4
+```
+
+## Step 10: visits of the same patient are correlated
+
+Now one row per patient again, with one FBS column per visit. If visits were independent, Spearman's rho between visits would be near zero. It is not, because a patient who is high at month 0 tends to stay high. That correlation is what a plain regression ignores and a mixed model handles. The filter `var1 < var2` compares the names as text. It drops each visit paired with itself and keeps one of each mirrored pair.
+
+```{r}
+#| label: explore-step-10
+```
+
+## Step 11: did the patients who left differ?
+
+If the patients who dropped out had higher sugar, an analysis of completers would make both drugs look better than they are. This table compares the baseline FBS of completers and leavers.
+
+```{r}
+#| label: explore-step-11
+```
+
+At baseline, patients who left before month 12 had a mean FBS of `r round(mean(df_dropout$fbs[!df_dropout$completed], na.rm = TRUE))` mg/dL, against `r round(mean(df_dropout$fbs[df_dropout$completed], na.rm = TRUE))` mg/dL for patients who stayed. Those who left started higher, so dropout is related to the outcome and completers alone would give a flattering picture.
+
+## Step 12: check
+
+The check stops the script if a number is off. It uses the numbers known from chapter 1, which are `r nrow(df_base)` patients and `r nrow(dfl)` visits. It also expects one row of FBS summary for each arm at each of the five visits, which is `r nrow(tab_fbs)` rows. Finally, every pair of visits must have a rho, which gives `r nrow(cor_visits)` pairs.
+
+```{r}
+#| label: explore-step-12
+```
+
+## Step 13: save
+
+All the result tables go into one RDS list for later use.
+
+```{r}
+#| label: explore-step-13
+```
+

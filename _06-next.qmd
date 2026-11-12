@@ -1,9 +1,0 @@
-# Coming next {.unnumbered}
-
-This site is updated as the workflow grows. The chapters above are what exists so far. The next chapter is planned below.
-
-## Mixed models for the repeated visits {.unnumbered}
-
-The cleaned data are in long format, with up to five rows per patient. Rows from the same patient are not independent, and chapter 3 showed it with the correlation between visits. A plain regression would treat them as independent. Ignoring the correlation gives the wrong standard errors, often too small for comparisons between arms.
-
-A mixed model fixes this. It gives each patient their own starting level and, if needed, their own slope. It also uses every visit a patient attended, so it copes with the dropout we built in. That is the next chapter.

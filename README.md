@@ -1,28 +1,33 @@
 # A clinical-epidemiology workflow in R
 
 A small, readable workflow for a repeated-measures trial, starting from messy Excel.
-It grows chapter by chapter. It now reaches Table 1, and mixed models come next.
-The data are an invented trial of two drugs (A and B) and fasting blood sugar (FBS)
-over 12 months. Each script is one stage. The single page `docs/index.html` walks through them with real output. It opens with a double-click, no server needed.
+It grows chapter by chapter. It now reaches Table 1 and ggplot2, and mixed models come next.
+The data follow a trial of two drugs (A and B) and fasting blood sugar (FBS) over 12 months.
+Each script is one stage. The single page `docs/index.html` walks through them with real output. It opens with a double-click, no server needed.
 
-All data in this repository are simulated. No real patient is involved.
+This is a teaching pack. It holds the data, the scripts and the page. It is not an R package.
+
+The data are a mock-up made for teaching. No real patient is involved. See `data/README.md` for the layout of the sheet.
+
+## Get the pack
+
+On the GitHub page, click the green Code button, then Download ZIP. Unzip the folder and open it as the project in Positron or RStudio.
 
 ## Packages
 
 ```r
-install.packages(c("dplyr", "tidyr", "tibble", "readr", "stringr", "lubridate", "readxl", "janitor", "ggplot2", "rstatix", "gtsummary", "gt", "summarytools", "ragg", "knitr", "rmarkdown"))
-install.packages("epicalc", repos = "https://medipe.psu.ac.th/epicalc")
+install.packages(c("dplyr", "tidyr", "readr", "stringr", "lubridate", "readxl", "janitor", "ggplot2", "rstatix", "gtsummary", "gt", "summarytools", "ragg", "knitr", "rmarkdown"))
+install.packages("epicalc", repos = c("https://medipe.psu.ac.th/epicalc",
+                                      "https://cloud.r-project.org"))
 ```
 
-You also need Quarto (to build the book) and Python 3 with `openpyxl` (to make the dirty Excel file).
+You also need Quarto to build the page. The file `packages.bib` holds the reference of every package, and the page lists them at the end.
 
-## Run order from a fresh clone
+## Run order
 
-Run everything from the repository root.
+Run everything from the project folder.
 
 ```sh
-Rscript code/0_simulate_data.r              # clean "truth" data -> data/*.csv
-python3 data/_source/make_dirty_fbs.py      # dirty Excel -> data/fbs_sim_dirty.xlsx
 Rscript code/1_clean_data.r                 # dirty Excel -> output/fbs_clean.rds
 Rscript code/2_basic_explore.r              # tables and plots
 Rscript code/3_table1.r                     # Table 1
@@ -33,7 +38,8 @@ quarto render                               # build the page into docs/index.htm
 ## Folders
 
 - `code/` the scripts, one per stage. Steps are marked `#%%@note step N:`.
-- `data/` simulated data. `data/_source/` holds the Python script that makes the Excel file dirty.
+- `data/` the Excel sheet and its notes in `data/README.md`.
 - `output/` objects the scripts write (not tracked).
 - `docs/index.html` the rendered page (everything is inside this one file).
-- `_*.qmd` the sections of the page; `index.qmd` joins them.
+- `_*.qmd` the sections of the page. `index.qmd` joins them.
+- `packages.bib` the references of the R packages.

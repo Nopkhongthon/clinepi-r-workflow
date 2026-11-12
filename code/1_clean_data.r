@@ -4,7 +4,7 @@
 # Output: output/fbs_clean.rds, one row per patient per visit (long format),
 #         ready for the mixed model.
 #
-# The data are simulated (code/0_simulate_data.r), so there is no privacy issue.
+# The data are a mock-up made for teaching. No real patient is involved.
 #
 # Run the steps in order. Every step changes `df` (or `dfl` once the data are
 # long) and leaves it in the environment, so after any step you can look at it
@@ -22,7 +22,7 @@ library(tidyr)      # pivot_longer(): one row per patient becomes one row per vi
 library(stringr)    # matching on the free text fields
 library(lubridate)  # date parsing
 
-path_raw   <- "data/fbs_sim_dirty.xlsx"
+path_raw   <- "data/fbs_mockup_trial.xlsx"
 path_clean <- "output/fbs_clean.rds"
 
 # text that means "no value was recorded". ไม่มา means "did not come".
@@ -166,7 +166,8 @@ dfl <- df |>
 #%%@note step 11: drop the visits that never happened -------------------------
 
 # A visit with neither a date nor an FBS is a patient who stopped coming.
-# That is dropout, not dirt, and the mixed model handles it.
+# That is dropout, not dirt. A mixed model uses the visits that did happen,
+# which is valid when dropout depends only on values we saw (missing at random).
 message(sprintf("visits that did not happen: %d of %d",
                 sum(is.na(dfl$date) & is.na(dfl$fbs)), nrow(dfl)))
 
@@ -183,7 +184,8 @@ dfl <- dfl |>
     fbs_typed = fbs,
     fbs       = readr::parse_number(fbs),
     fbs       = dplyr::if_else(fbs < 30, round(fbs * 18), fbs),
-    # 999 is a missing code; no living patient has an FBS this high
+    # 999 is a missing code; a fasting value above 600 is not plausible for an
+    # outpatient in this trial
     fbs       = dplyr::if_else(fbs > 600, NA_real_, fbs)
   )
 
@@ -254,7 +256,8 @@ dfl <- dfl |>
     # a visit that lost its date keeps the planned month as its time
     time_months = dplyr::coalesce(time_months, as.numeric(month)),
     # the day the visit was due: month 0 date plus the planned months.
-    # %m+% keeps 31 Jan + 1 month on 28 Feb instead of jumping into March.
+    # %m+% keeps 31 Jan + 1 month on the last day of February (28 or 29)
+    # instead of jumping into March.
     # Write period(month = month): period(month, units = "months") would ADD
     # the whole column into one period and give every visit the same due date.
     due_date    = date_m0 %m+% lubridate::period(month = month),
@@ -279,7 +282,7 @@ dfl <- dfl |>
 #%%@note step 16: check -------------------------------------------------------
 
 stopifnot(
-  # the numbers we know from the simulation: 200 patients, 912 visits
+  # the numbers known for this dataset: 200 patients, 912 visits
   dplyr::n_distinct(dfl$id) == 200,
   nrow(dfl) == 912,
   # every patient has a month 0 visit, and no visit appears twice

@@ -4,9 +4,11 @@ This is a small site about how I do clinical-epidemiology analysis in R. It is w
 
 The site grows over time. New chapters are added as the workflow goes further, so check the date at the top for the last update.
 
-Everything runs on one invented trial. Two drugs, A and B, are compared on fasting blood sugar (FBS) at months 0, 3, 6, 9 and 12. Each patient has up to five rows, so the visits of one patient are correlated. All data are simulated and no real patient is involved.
+Everything runs on one trial. Two drugs, A and B, are compared on fasting blood sugar (FBS) at months 0, 3, 6, 9 and 12. Each patient has up to five rows, so the visits of one patient are correlated. The data are a mock-up made for teaching. No real patient is involved. The file `data/README.md` describes the sheet and its layout.
 
-Each chapter takes one script and walks through it step by step. The code you read is loaded straight from the script file, so it is the code that ran. The output sits right under it.
+Each chapter takes one script and walks through it step by step. The code you read is loaded straight from the script file, so it is the code that ran. The output sits right under it. The script files keep their comments, and the page moves the ideas of those comments into the text beside the code.
+
+R itself is described in the base R reference [@R-base]. The page is built with Quarto, which runs the R code through knitr [@R-knitr] and rmarkdown [@R-rmarkdown]. Each package used later is cited in the chapter where it first appears, and the full list is at the end.
 
 ## The pipeline {.unnumbered}
 
@@ -14,43 +16,42 @@ Each chapter takes one script and walks through it step by step. The code you re
 %%| echo: false
 %%| fig-width: 7
 flowchart LR
-  A["Simulate<br/>the truth"] --> B["Dirty<br/>Excel sheet"]
-  B --> C["Clean<br/>one row per visit"]
-  C --> D["Explore<br/>tables and plots"]
-  D --> E["Table 1"]
-  E -.-> F["Mixed model<br/>(coming)"]
-  F -.-> G["more to come"]
+  A["Dirty Excel sheet<br/>(mock-up data)"] --> B["Clean<br/>one row per visit"]
+  B --> C["Explore<br/>tables and plots"]
+  C --> D["Table 1"]
+  D -.-> E["Mixed model<br/>(coming)"]
+  E -.-> F["more to come"]
+  style E stroke-dasharray: 5 5
   style F stroke-dasharray: 5 5
-  style G stroke-dasharray: 5 5
 ```
 
 | Chapter | Script | What it does |
 |---|---|---|
-| 1 Simulating the trial | `code/0_simulate_data.r` | Writes down the truth and makes the data |
-| 2 Cleaning a dirty Excel sheet | `code/1_clean_data.r` | Fixes dates, units, spellings and duplicates |
-| 3 Exploring the data | `code/2_basic_explore.r` | Tables and plots, with epicalc and ggplot2 |
-| 4 Table 1 with gtsummary | `code/3_table1.r` | A publication style baseline table |
-| 5 Plots with ggplot2 | `code/4_ggplot_basics.r` | Basic plots, fitted curves, themes, axes and text, dodging |
+| 1 Cleaning a dirty Excel sheet | `code/1_clean_data.r` | Fixes dates, units, spellings and duplicates |
+| 2 Exploring the data | `code/2_basic_explore.r` | Tables and plots, with epicalc and ggplot2 |
+| 3 Table 1 with gtsummary | `code/3_table1.r` | A publication style baseline table |
+| 4 Plots with ggplot2 | `code/4_ggplot_basics.r` | Basic plots, fitted curves, themes, axes and text, dodging |
 | Coming next | | Mixed models for the repeated visits, then more |
 
 ## Packages {.unnumbered}
 
 ```r
-install.packages(c("dplyr", "tidyr", "tibble", "readr", "stringr", "lubridate",
+install.packages(c("dplyr", "tidyr", "readr", "stringr", "lubridate",
                    "readxl", "janitor", "ggplot2", "rstatix", "gtsummary", "gt",
-                   "summarytools", "ragg"))
-install.packages("epicalc", repos = "https://medipe.psu.ac.th/epicalc")
+                   "summarytools", "ragg", "knitr", "rmarkdown"))
+install.packages("epicalc", repos = c("https://medipe.psu.ac.th/epicalc",
+                                      "https://cloud.r-project.org"))
 ```
 
-The epicalc package is no longer on CRAN, so it comes from the repository above.
+The epicalc package is no longer on CRAN, so it comes from the repository above. You also need Quarto to build the page.
 
 ## How to run it {.unnumbered}
 
-Run each script from the project folder, in this order. The Python line makes the dirty Excel file and needs `openpyxl`.
+Get the pack from GitHub. Click the green Code button, then Download ZIP, and unzip the folder. Open that folder as the project in Positron or RStudio, so that every path in the scripts starts from the project folder.
+
+Run the four scripts in this order. Then build the page.
 
 ```sh
-Rscript code/0_simulate_data.r
-python3 data/_source/make_dirty_fbs.py
 Rscript code/1_clean_data.r
 Rscript code/2_basic_explore.r
 Rscript code/3_table1.r

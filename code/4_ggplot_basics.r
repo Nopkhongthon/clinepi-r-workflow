@@ -201,7 +201,7 @@ p_named <- p_classic +
     colour   = "Drug",
     title    = "FBS falls faster on drug B",
     subtitle = "Mean of each arm at each visit",
-    caption  = "Simulated data"
+    caption  = "Mock-up data"
   )
 
 p_named

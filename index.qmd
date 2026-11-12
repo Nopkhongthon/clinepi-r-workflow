@@ -12,16 +12,16 @@ engine: knitr
 
 {{< include _00-welcome.qmd >}}
 
-{{< include _01-simulate.qmd >}}
+{{< include _01-clean.qmd >}}
 
-{{< include _02-clean.qmd >}}
+{{< include _02-explore.qmd >}}
 
-{{< include _03-explore.qmd >}}
+{{< include _03-table1.qmd >}}
 
-{{< include _04-table1.qmd >}}
+{{< include _04-ggplot.qmd >}}
 
-{{< include _05-ggplot.qmd >}}
-
-{{< include _06-next.qmd >}}
+{{< include _05-next.qmd >}}
 
 {{< include _a-stata-map.qmd >}}
+
+{{< include _b-references.qmd >}}

@@ -1,0 +1,76 @@
+# Table 1 with gtsummary {#sec-table1}
+
+```{r}
+#| label: setup-table1
+#| include: false
+source("_common.R")
+load_steps("code/3_table1.r", "table1")
+```
+
+Almost every clinical paper starts with a baseline table. I build it in one call and then adjust it. Nothing in the table is typed by hand.
+
+The script is `code/3_table1.r`. It reads the cleaned file from chapter 1. It saves the gtsummary object as `output/table1.rds`, to reuse or restyle later, and the table as `output/table1.docx`, ready to paste into a report. Every number in the table is computed by gtsummary. If the data change, re-run the script and the table changes with them.
+
+## Step 1: packages and paths
+
+Three packages do the work. The dplyr package [@R-dplyr] has `filter()`, which keeps the baseline visit. The gtsummary package [@R-gtsummary] has `tbl_summary()`, which builds the whole Table 1 from one call. The gt package [@R-gt] has `gtsave()`, which sends the table to Word. The script keeps the `install.packages()` line for these three as a comment.
+
+```{r}
+#| label: table1-step-1
+#| message: false
+```
+
+## Step 2: one row per patient
+
+Table 1 describes patients as they entered the trial, so it uses the month 0 visit only. The long data repeat age and sex on every visit. Counting all `r nrow(readRDS(path_clean))` rows would count each patient up to five times.
+
+```{r}
+#| label: table1-step-2
+```
+
+## Step 3: the basic table
+
+First the default. `tbl_summary()` chooses a statistic for each variable by itself. I run this step alone first and look at the default.
+
+```{r}
+#| label: table1-step-3
+```
+
+## Step 4: labels, statistics and missing data
+
+Now I change only what I decided on purpose. The `statistic` argument gives the mean and standard deviation for the variables that looked symmetric in the histograms of chapter 2. It gives the median and quartiles (Q1, Q3) for diabetes duration, which has a long right tail. The choice is made by eye and not by a test. Diabetes duration was recorded in whole years, so it gets no decimals. The other numbers get one.
+
+The setting `missing = "no"` removes the Unknown rows inside the table. Missing data get their own column instead. The `add_n()` function places that column right after the characteristic. It shows the missing count and its percentage of all `r nrow(df_base)` patients.
+
+```{r}
+#| label: table1-step-4
+```
+
+## Step 5: overall column, headers and title
+
+I add an overall column with `add_overall()` and put the group size in each header. There are no p values. In a randomised trial any baseline difference is chance by design, so a test answers a question nobody asked. CONSORT says to leave them out.
+
+The title has no "Table 1." in the text, because Word numbers its tables itself. The caption set here shows in the Viewer pane. Step 7 adds it again for Word.
+
+```{r}
+#| label: table1-step-5
+```
+
+## Step 6: check
+
+The size in each column header comes from the data, so I check it against the numbers known from chapter 1.
+
+```{r}
+#| label: table1-step-6
+```
+
+The overall column and the two drug columns hold `r paste(n_cols, collapse = ", ")` patients, in that order.
+
+## Step 7: save
+
+The table is saved as an R object to restyle later, and as a Word file to paste into a report. The `as_gt()` function turns the gtsummary table into a gt table. The `gtsave()` function picks the file type from the extension, so `.docx` gives a Word file. It leaves the gtsummary caption out of a Word file, so the title goes in again as a gt header. Word shows it as a numbered caption, such as Table 1.
+
+```{r}
+#| label: table1-step-7
+```
+

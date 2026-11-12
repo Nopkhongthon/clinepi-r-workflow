@@ -1,0 +1,175 @@
+# Plots with ggplot2 {#sec-ggplot}
+
+```{r}
+#| label: setup-ggplot
+#| include: false
+source("_common.R")
+load_steps("code/4_ggplot_basics.r", "ggplot")
+```
+
+This chapter teaches ggplot2 [@R-ggplot2] on the same trial data. It starts with the basic plot types and then dresses one plot up until it is ready for a paper. The finished figure is saved as `output/figures/fbs_by_month.tiff`.
+
+ggplot2 builds a plot in layers. You start with the data and say which column goes on which axis. Then you add a layer that draws, a layer that names things and a layer that sets the look. Each layer is joined with `+`.
+
+| Layer | What it does |
+|---|---|
+| `ggplot(data, aes())` | Says which data to use, and which column goes on which axis |
+| `geom_*()` | Says how to draw it, as points, lines, bars or fitted curves |
+| `scale_*()` | Sets where the ticks go and the range of each axis |
+| `labs()` | Gives the names of the axes, the legend and the title |
+| `theme_*()` and `theme()` | Set the look, namely the background, the axis lines, and the size and face of the text |
+
+Each step below adds one idea. Run a step, look at the plot, then go on.
+
+The script is `code/4_ggplot_basics.r`. It reads the cleaned file from chapter 1.
+
+## Step 1: packages and paths
+
+Three packages do the work. The dplyr package [@R-dplyr] has `filter()` and `summarise()`, which get the data ready for each plot. The ggplot2 package draws every plot in the script. The ragg package [@R-ragg] has `agg_tiff()`, which writes a TIFF file that keeps its 300 dpi setting. The script keeps the `install.packages()` line for these three as a comment.
+
+```{r}
+#| label: ggplot-step-1
+#| message: false
+```
+
+## Step 2: the data for the plots
+
+Two small tables are made first. `df_base` has one row per patient, taken from the month 0 visit. `df_mean` has one row per arm per month, with the mean and the standard deviation (SD) of FBS. The line plot and the bar graph of means are drawn from this small table. The script prints it, so you can look at it.
+
+```{r}
+#| label: ggplot-step-2
+```
+
+## Step 3: a first scatter plot
+
+Every plot needs three things. These are the data, `aes()` to say which column goes on the x axis and which on the y axis, and a geom to draw them. The function `geom_point()` draws one dot per row, so here one dot per patient.
+
+```{r}
+#| label: ggplot-step-3
+```
+
+## Step 4: colour the dots by a third variable
+
+Add one more column to `aes()` and ggplot2 colours the dots by it. It also draws the legend by itself. The setting `alpha = 0.6` makes the dots see-through, so dots that overlap look darker. The setting `size` sets how big each dot is.
+
+```{r}
+#| label: ggplot-step-4
+```
+
+## Step 5: a line plot
+
+A line joins the points in the order of x. Each arm needs its own line, so the plot uses the summary table with one row per arm per month. The setting `group = treatment` says which points belong to the same line, and `colour = treatment` gives each line its own colour.
+
+```{r}
+#| label: ggplot-step-5
+```
+
+## Step 6: a loess curve
+
+`geom_smooth()` draws a fitted curve over the raw points. A loess curve is a flexible local fit. It follows the data without a shape chosen in advance, so it is a good first look. The grey band is the 95% confidence interval.
+
+The x axis is `time_months`, the exact time of each visit, so the dots spread out instead of sitting in five columns.
+
+```{r}
+#| label: ggplot-step-6
+```
+
+## Step 7: a straight line, the linear fit
+
+The setting `method = "lm"` fits a linear regression of y on x and draws it as a straight line. FBS falls fast at first and then levels off. A straight line cannot bend, so it misses that shape. Compare it with the loess curve of step 6.
+
+```{r}
+#| label: ggplot-step-7
+```
+
+## Step 8: curved fits, quadratic and cubic
+
+The fit is still `method = "lm"`, but the formula now has a curve written into it. The term `poly(x, 2)` adds x squared, which makes a quadratic with one bend. The term `poly(x, 3)` adds x cubed as well, which makes a cubic with up to two bends.
+
+```{r}
+#| label: ggplot-step-8
+```
+
+## Step 9: all four fits on one plot
+
+Several `geom_smooth()` layers can share one plot. Writing `colour = "Linear"` inside `aes()` gives that line a name, so the legend lists every fit. The setting `se = FALSE` drops the confidence bands, which would hide each other here. The loess, quadratic and cubic curves follow the levelling off. The straight line does not.
+
+```{r}
+#| label: ggplot-step-9
+```
+
+## Step 10: bar graphs
+
+There are two bar geoms. The function `geom_bar()` counts the rows for you, so it draws one bar per sex, with a height equal to the number of patients. The setting `fill` colours the inside of the bars, while `colour` is only the outline. The function `geom_col()` draws a height you already worked out, here the mean FBS. The call `factor(month)` makes month a set of groups, so each visit gets its own bars. The setting `position = "dodge"` puts the two arms side by side instead of stacking them.
+
+```{r}
+#| label: ggplot-step-10
+```
+
+## Step 11: change the theme, theme_classic
+
+A theme changes the look, never the data. The default is `theme_grey()`, which has a grey panel and a white grid. The function `theme_classic()` is the usual choice for a paper. It has a white background, an x and a y axis line with ticks, and no grid. A theme is added with `+` like any other layer. The complete themes `theme_bw()`, `theme_minimal()` and `theme_light()` are also worth a try.
+
+```{r}
+#| label: ggplot-step-11
+```
+
+## Step 12: add the axis lines and ticks yourself
+
+`theme_minimal()` has no axis lines and no ticks, so it is a good place to learn how to add them. The element `axis.line` draws the x and y axis, `axis.ticks` draws the tick marks and `axis.ticks.length` sets how long the ticks are.
+
+The scale sets where the ticks go. The `breaks` argument of `scale_x_continuous()` chooses where the ticks go, here at each visit. The `limits` argument sets the range of an axis. Here the y axis starts at 0, which shows the fall in FBS against its full size. The call `guide_axis(minor.ticks = TRUE)` adds small unlabelled ticks between the others.
+
+```{r}
+#| label: ggplot-step-12
+```
+
+## Step 13: name the axes, the legend and the plot
+
+`labs()` names everything in one place. It names the x and y axis, the legend, a title, a subtitle and a caption. The legend is named after the aesthetic it shows, here `colour`. The caption on this plot says Mock-up data.
+
+```{r}
+#| label: ggplot-step-13
+```
+
+## Step 14: bold, size and face of the axis text and the title
+
+`theme()` changes one piece of text at a time with `element_text()`. The element `axis.text` is the numbers on the axes and `axis.title` is the axis names. The element `plot.title` is the title, and `legend.title` and `legend.text` are the legend. The `face` argument can be plain, bold, italic or bold.italic, and `size` is in points. Add `.x` or `.y` to change one axis only, for example `axis.text.x`. The setting `hjust = 0.5` centres the title, where 0 is left and 1 is right.
+
+Here bold also means a thicker axis line and thicker ticks, and never a thicker data line. The theme is kept in an object called `bold_text`, so it can be added to any later plot with one `+`.
+
+```{r}
+#| label: ggplot-step-14
+```
+
+## Step 15: dodge the points so the arms do not overlap
+
+At each month the two arms sit at almost the same height, so their points and error bars cover each other. The error bars show the mean plus and minus one SD. The function `position_dodge()` moves each arm a little to the side. Give the same dodge to every layer that has to move together, namely the error bars, the lines and the points.
+
+```{r}
+#| label: ggplot-step-15
+```
+
+## Step 16: dodge the raw points too
+
+With one dot per patient, the dots of the two arms also land on top of each other. The function `position_jitterdodge()` first puts the arms side by side, which is the dodge. It then spreads the dots of each arm a little sideways, which is the jitter. Now every patient can be seen. The call `factor(month)` makes each visit a group to dodge within.
+
+```{r}
+#| label: ggplot-step-16
+```
+
+## Step 17: save the finished figure
+
+`ggsave()` writes a plot to a file. Journals usually want a TIFF at 300 dpi. The device `ragg::agg_tiff` stores the 300 dpi inside the file, and lzw compression keeps the file small without losing anything. The width and height are in inches. The script makes the figures folder if it is missing and reports where the figure was saved.
+
+```{r}
+#| label: ggplot-step-17
+```
+
+## Step 18: check
+
+The check stops the script if something is off. It expects one mean per arm at each of the five visits, which is `r nrow(df_mean)` rows. It also expects the finished figure to exist on disk.
+
+```{r}
+#| label: ggplot-step-18
+```

@@ -1,0 +1,233 @@
+# Cleaning a dirty Excel sheet {#sec-clean}
+
+```{r}
+#| label: setup-clean
+#| include: false
+source("_common.R")
+load_steps("code/1_clean_data.r", "clean")
+```
+
+Real clinic data arrive as a spreadsheet typed by several people over two years. The sheet used here is a mock-up made for teaching, so every cleaning step has something to fix. No real patient is involved.
+
+The script is `code/1_clean_data.r`. It turns the sheet into one tidy row per patient per visit, ready for a mixed model, and saves the result as `output/fbs_clean.rds`.
+
+Run the steps in order. Every step changes `df`, or `dfl` once the data are long, and leaves it in the environment. After any step you can look at the data and see exactly what that one step did. To start again, re-run step 2.
+
+## About the dirty sheet
+
+The sheet has one row per patient. It holds a date column and an FBS column for each visit at months 0, 3, 6, 9 and 12. Several staff typed it, and it shows their habits. Dates come in mixed formats, with Buddhist Era years, Thai month names and Excel serial numbers. The same group or sex is spelled in many ways. Units sit inside cells, and mmol/L values sit in a mg/dL column. Missing values carry codes, a year is mistyped and some rows appear twice. The file `data/README.md` lists these kinds of dirt.
+
+## Step 1: packages, paths and lookups
+
+The script opens with the packages, two paths and three small lookups. The script also keeps one `install.packages()` line as a comment. Remove the `#` and run it once if a package is missing.
+
+Seven packages do the work, and each one has a single job. The raw data arrive as one Excel sheet, so readxl [@R-readxl] reads it. The janitor package [@R-janitor] gives `clean_names()` and the converter for Excel serial dates. The readr package [@R-readr] gives `parse_number()` for text that contains a number. The dplyr package [@R-dplyr] supplies the verbs of the cleaning chain. The tidyr package [@R-tidyr] supplies `pivot_longer()`, which turns one row per patient into one row per visit. The stringr package [@R-stringr] matches the free text fields. The lubridate package [@R-lubridate] parses the dates.
+
+The lookups hold what I know about the mess in advance. The first is the text that means no value was recorded. It includes the Thai word ไม่มา, which means did not come. The second turns each Thai month abbreviation into a month number written between slashes, so that 23 มิ.ย. 2568 becomes 23/6/2568. The dots in these names are escaped, because `str_replace_all()` reads the names as regular expressions and a bare dot would match any character. The third is the date the study closed, because no real visit can fall after it.
+
+```{r}
+#| label: clean-step-1
+#| message: false
+```
+
+## Step 2: import the sheet as text
+
+Almost every column mixes numbers with words, so readxl is not allowed to guess the types. I read the whole sheet as text and give each variable its type later, in a step I can see.
+
+```{r}
+#| label: clean-step-2
+```
+
+```{r}
+#| echo: false
+peek(df, 8)
+```
+
+The sheet has `r nrow(df)` rows and `r ncol(df)` columns. Some of these rows are duplicates and some cells hold units or words, which the next steps deal with.
+
+## Step 3: clean the patient id
+
+The patient number was typed as 32, 004 and FBS-015. Keeping only the digits turns all of these styles into one integer.
+
+```{r}
+#| label: clean-step-3
+```
+
+## Step 4: drop duplicate records
+
+First I drop the records entered twice, identical in every single field. Some patients can still appear twice, with one value typed differently. The file alone cannot say which entry is right, so the rule is to keep the first record. The message names the patients, so the data collector can check the paper form.
+
+```{r}
+#| label: clean-step-4
+```
+
+The message names `r length(dup_id)` such `r ifelse(length(dup_id) == 1, "patient", "patients")`, with id `r paste(dup_id, collapse = ", ")`. After this step `r nrow(df)` patients remain, one row each.
+
+## Step 5: put every free text field on one spelling
+
+I squish the spaces and lower the case before writing any rule. Then " M ", "m" and "MALE" are already one thing, and each rule has fewer spellings to match.
+
+```{r}
+#| label: clean-step-5
+```
+
+## Step 6: treatment arm
+
+The spellings a, drug a, ยา a and group a all end in the letter of the arm, so one pattern covers them all.
+
+```{r}
+#| label: clean-step-6
+```
+
+```{r}
+#| echo: false
+table(df$treatment, useNA = "ifany")
+```
+
+## Step 7: sex
+
+Sex was typed as numbers, letters and words, in two languages. Each group of spellings maps to one level.
+
+```{r}
+#| label: clean-step-7
+```
+
+```{r}
+#| echo: false
+table(df$sex, useNA = "ifany")
+```
+
+## Step 8: age, BMI and diabetes duration become numbers
+
+Units were typed beside the numbers. The `parse_number()` function keeps the number and drops the rest. The text 62 ปี becomes 62, the text 27.3 kg/m2 becomes 27.3 and the text 5 yr becomes 5.
+
+```{r}
+#| label: clean-step-8
+```
+
+## Step 9: impossible values
+
+Some values cannot be true. I keep the offending patients in an object first, so their ids can be reported before the values are changed. Three repairs follow. A value of 999 is a missing code, and an adult trial has nobody aged 6, so any age outside 18 to 100 becomes missing. A BMI above 100 lost its decimal point, so 273 was really 27.3 and is divided by 10. A diabetes duration of 99 years is a missing code and not a measurement, so it becomes missing.
+
+```{r}
+#| label: clean-step-9
+```
+
+The check finds `r nrow(bad_baseline)` patients with an impossible baseline value.
+
+## Step 10: wide to long, one row per visit
+
+The sheet has a date column and an FBS column for every visit, such as the pair for month 3. A mixed model needs one row per visit instead. The `pivot_longer()` function splits each column name into the variable and the month in one move. The pattern splits a name like `fbs_m3` into the value name, which is `fbs`, and the month, which is 3. The special name `.value` then makes one date column and one FBS column.
+
+```{r}
+#| label: clean-step-10
+```
+
+```{r}
+#| echo: false
+peek(dfl, 8)
+```
+
+The data now have `r nrow(dfl)` rows, which is `r dplyr::n_distinct(dfl$id)` patients with five planned visits each.
+
+## Step 11: drop the visits that never happened
+
+A visit with neither a date nor an FBS value is a patient who stopped coming. That is dropout and not dirt, so the row goes. A mixed model can use the visits that did happen. It stays valid when dropout depends only on values we saw, which is called missing at random (MAR).
+
+```{r}
+#| label: clean-step-11
+```
+
+After this step `r nrow(dfl)` visits remain.
+
+## Step 12: FBS becomes a number on one unit
+
+The glucometer shows mmol/L and the lab reports mg/dL, and staff typed both into one column. The size of the number tells the unit. The working rule is that a fasting value in mg/dL is not below 30 and a value in mmol/L is not above 30. A value below 30 is therefore multiplied by 18, because 1 mmol/L of glucose equals 18 mg/dL. Any value above 600, such as the code 999, becomes missing. A fasting value that high is not plausible for an outpatient in this trial, so it is treated as a missing code. The script keeps the typed text in a spare column first, so the changed values can be listed with their ids.
+
+```{r}
+#| label: clean-step-12
+```
+
+The step converts or sets to missing `r nrow(fbs_fixed)` values.
+
+## Step 13: visit dates, one habit per line
+
+Dates came in five habits, namely day first, ISO, an Excel serial number, Buddhist Era years and Thai month names. Each line of this step fixes exactly one habit and leaves the text ready for the next line. After the step, look at `date` and `txt` side by side. That comparison is the whole lesson.
+
+The lines work in this order.
+
+1. The date text is squished, and a Thai month abbreviation becomes a month number. For example 23 มิ.ย. 2568 becomes 23/6/2568. The spaces that remain are removed.
+2. A cell that Excel stored as a real date arrives as a bare serial number of five digits. The janitor converter turns it into a date, which is then written as day, month and year.
+3. A year above 2400 is a Buddhist Era year, so 543 is taken off it.
+4. Two layouts are left, day first with slashes and year first with hyphens. The lubridate functions `dmy()` and `ymd()` try one after the other, and `coalesce()` keeps the first that works.
+5. A visit after the study closed is a mistyped year and not a real visit, so its date becomes missing.
+
+Anything still missing after these lines had a date typed in the sheet. The step says so out loud and keeps the rows, so the data collector can be contacted.
+
+```{r}
+#| label: clean-step-13
+```
+
+Here `r nrow(date_bad)` visit `r ifelse(nrow(date_bad) == 1, "date", "dates")` could not be used.
+
+## Step 14: time since the first visit
+
+Month 3 is the plan, but the real visit can be a few days early or late. I count the actual days from each patient's month 0 visit. I also count calendar months, so the mixed model can use either the planned month or the exact time.
+
+Three details matter here. First, lubridate counts real calendar months, so 15 January to 15 April is exactly 3 whatever the lengths of February and March. Second, a visit that lost its date keeps the planned month as its time. Third, the due date is the month 0 date plus the planned months. The `%m+%` operator keeps 31 January plus 1 month on the last day of February, which is the 28th or the 29th, instead of jumping into March. The period must be written as `period(month = month)`. The form `period(month, units = "months")` would add the whole column into one period and give every visit the same due date.
+
+A visit more than 3 weeks from its due date is worth a look, so the step lists those visits.
+
+```{r}
+#| label: clean-step-14
+```
+
+Here `r nrow(off_window)` visits are flagged. The check stays because real clinics are rarely so tidy. When no visit is flagged, the message ends with an empty id list.
+
+## Step 15: keep the analysis variables
+
+Only the variables the analysis needs are kept, in a sensible order.
+
+```{r}
+#| label: clean-step-15
+```
+
+```{r}
+#| echo: false
+peek(dfl, 8)
+```
+
+## Step 16: check
+
+The check stops the script if the cleaned data look wrong. It compares the data with the numbers known for this dataset. If a cleaning rule were wrong, one of these numbers would no longer match.
+
+The check covers these points.
+
+- The patient total and the visit total match what is known for this dataset.
+- Every patient has a month 0 visit, and no visit appears twice.
+- Every visit falls in month 0, 3, 6, 9 or 12.
+- Every free text field landed on the levels it was meant to. Nobody has a missing treatment, and sex has two levels.
+- FBS is back on one unit, between 40 and 400, and nobody is seen before enrolment, so no day count is negative.
+
+```{r}
+#| label: clean-step-16
+```
+
+The cleaned data hold `r dplyr::n_distinct(dfl$id)` patients and `r nrow(dfl)` visits, which are the totals the check expects.
+
+## Step 17: describe the cleaned data
+
+A last look with summarytools [@R-summarytools]. The script handles three cases. When run by hand, the summary opens in the browser. Inside this page, which knitr builds, it renders in place. In a plain `Rscript` run it is skipped, because the HTML would flood the console.
+
+```{r}
+#| label: clean-step-17
+#| results: asis
+```
+
+## Step 18: save
+
+The cleaned data go to an RDS file, which keeps every variable type exactly as it is. The next chapters start from this file.
+
+```{r}
+#| label: clean-step-18
+```
