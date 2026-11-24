@@ -37,8 +37,6 @@ df_base <- dfl |>
   dplyr::filter(month == 0) |>
   as.data.frame()
 
-message(sprintf("loaded %d patients, %d visits", nrow(df_base), nrow(dfl)))
-
 #%%@note step 3: baseline, the categorical variable ---------------------------
 
 # tab1() is Stata's `tab sex`: counts, % with and without the missing, and a
@@ -109,7 +107,10 @@ p_base_box <- ggplot2::ggplot(df_base_long, ggplot2::aes(y = value)) +
   ggplot2::facet_wrap(~ variable, scales = "free", axes = "all", axis.labels = "all") +
   ggplot2::labs(y = NULL) +
   ggplot2::theme_classic() +
-  ggplot2::theme(axis.text.x = ggplot2::element_blank(), axis.ticks.x = ggplot2::element_blank())
+  ggplot2::theme(
+    axis.text.x = ggplot2::element_blank(),
+    axis.ticks.x = ggplot2::element_blank()
+  )
 
 p_base_hist
 p_base_box
@@ -121,12 +122,20 @@ p_hist <- ggplot2::ggplot(dfl, ggplot2::aes(x = fbs)) +
   ggplot2::geom_histogram(binwidth = 10, fill = "grey70", colour = "white") +
   # axes = "all" draws the x and y axis on every panel, not just the outer
   # ones; the panels still share one scale, so they stay comparable
-  ggplot2::facet_wrap(~ month, nrow = 1, labeller = ggplot2::label_both,
-                      axes = "all", axis.labels = "all") +
+  ggplot2::facet_wrap(
+    ~ month,
+    nrow = 1,
+    labeller = ggplot2::label_both,
+    axes = "all",
+    axis.labels = "all"
+  ) +
   ggplot2::labs(x = "FBS (mg/dL)", y = "Patients") +
   ggplot2::theme_classic()
 
-p_box <- ggplot2::ggplot(dfl, ggplot2::aes(x = factor(month), y = fbs, fill = treatment)) +
+p_box <- ggplot2::ggplot(
+  dfl,
+  ggplot2::aes(x = factor(month), y = fbs, fill = treatment)
+) +
   ggplot2::geom_boxplot() +
   ggplot2::labs(x = "Month", y = "FBS (mg/dL)", fill = "Drug") +
   ggplot2::theme_classic()
@@ -141,12 +150,24 @@ p_box
 # different speeds (random slope). The thick lines are the arm averages.
 p_spaghetti <- ggplot2::ggplot(dfl, ggplot2::aes(x = month, y = fbs)) +
   ggplot2::geom_line(ggplot2::aes(group = id), colour = "grey80", linewidth = 0.3) +
-  ggplot2::stat_summary(ggplot2::aes(colour = treatment), fun = mean,
-                        geom = "line", linewidth = 1.2) +
-  ggplot2::stat_summary(ggplot2::aes(colour = treatment), fun = mean,
-                        geom = "point", size = 2) +
-  ggplot2::facet_wrap(~ treatment, labeller = ggplot2::label_both,
-                      axes = "all", axis.labels = "all") +
+  ggplot2::stat_summary(
+    ggplot2::aes(colour = treatment),
+    fun = mean,
+    geom = "line",
+    linewidth = 1.2
+  ) +
+  ggplot2::stat_summary(
+    ggplot2::aes(colour = treatment),
+    fun = mean,
+    geom = "point",
+    size = 2
+  ) +
+  ggplot2::facet_wrap(
+    ~ treatment,
+    labeller = ggplot2::label_both,
+    axes = "all",
+    axis.labels = "all"
+  ) +
   ggplot2::scale_x_continuous(breaks = c(0, 3, 6, 9, 12)) +
   ggplot2::labs(x = "Month", y = "FBS (mg/dL)", colour = "Drug") +
   ggplot2::theme_classic()
@@ -162,8 +183,10 @@ p_spaghetti
 cor_visits <- dfl |>
   dplyr::select(id, month, fbs) |>
   tidyr::pivot_wider(names_from = month, values_from = fbs, names_prefix = "fbs_m") |>
-  rstatix::cor_test(vars = c("fbs_m0", "fbs_m3", "fbs_m6", "fbs_m9", "fbs_m12"),
-                    method = "spearman") |>
+  rstatix::cor_test(
+    vars = c("fbs_m0", "fbs_m3", "fbs_m6", "fbs_m9", "fbs_m12"),
+    method = "spearman"
+  ) |>
   # var1 < var2 compares the names as text: it drops each visit paired with
   # itself and keeps one of each mirrored pair
   dplyr::filter(var1 < var2) |>
@@ -201,7 +224,15 @@ stopifnot(
 
 #%%@note step 13: save --------------------------------------------------------
 
-saveRDS(list(tab_sex = tab_sex, tab_sex_arm = tab_sex_arm, tab_base = tab_base,
-             tab_visits = tab_visits,
-             tab_fbs = tab_fbs, cor_visits = cor_visits, tab_dropout = tab_dropout),
-        path_explore)
+saveRDS(
+  list(
+    tab_sex = tab_sex,
+    tab_sex_arm = tab_sex_arm,
+    tab_base = tab_base,
+    tab_visits = tab_visits,
+    tab_fbs = tab_fbs,
+    cor_visits = cor_visits,
+    tab_dropout = tab_dropout
+  ),
+  path_explore
+)

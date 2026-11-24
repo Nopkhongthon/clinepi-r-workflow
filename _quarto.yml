@@ -20,7 +20,9 @@ knitr:
 
 format:
   html:
-    theme: cosmo   # a plain Bootstrap theme; change this one word to restyle
+    theme:
+      light: cosmo   # plain Bootstrap themes; the toggle at the top switches
+      dark: darkly
     embed-resources: true   # styles, scripts and plots live inside each .html file
     code-copy: true
     code-overflow: wrap

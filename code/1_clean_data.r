@@ -67,11 +67,8 @@ df <- dplyr::distinct(df)
 
 # Some patients still appear twice, with one value typed differently. The file
 # alone cannot say which entry is right, so the rule is: keep the first record.
-# Name the patients, so the data collector can check the paper form.
+# dup_id lists them, so the data collector can check the paper form.
 dup_id <- df$id[duplicated(df$id)]
-
-message(sprintf("patients kept first from a conflicting duplicate: %d, id = %s",
-                length(dup_id), paste(dup_id, collapse = ", ")))
 
 df <- dplyr::slice_head(df, n = 1, by = id)
 
@@ -130,13 +127,10 @@ df <- df |>
 
 #%%@note step 9: impossible values --------------------------------------------
 
-# Keep the patients first, so the ids can be reported before the values go.
+# Keep the patients first, so their ids are on record before the values change.
 bad_baseline <- df |>
   dplyr::filter(!dplyr::between(age, 18, 100) | bmi > 100 | dm_duration >= 99) |>
   dplyr::select(id, age, bmi, dm_duration)
-
-message(sprintf("patients with an impossible baseline value: %d, id = %s",
-                nrow(bad_baseline), paste(bad_baseline$id, collapse = ", ")))
 
 df <- df |>
   dplyr::mutate(
@@ -148,14 +142,16 @@ df <- df |>
     dm_duration = dplyr::if_else(dm_duration >= 99, NA_real_, dm_duration)
   )
 
-#%%@note step 10: wide to long, one row per visit -----------------------------
+#%%@note step 10: wide to long, and back -----------------------------------
 
 # The sheet has a date_m3 and an fbs_m3 column for every visit. A mixed model
 # needs one row per visit instead. names_pattern splits "fbs_m3" into the
 # value name ("fbs") and the month (3); ".value" makes date and fbs columns.
 dfl <- df |>
-  dplyr::select(id, treatment, age, sex, bmi, dm_duration,
-                dplyr::matches("^(date|fbs)_m\\d+$")) |>
+  dplyr::select(
+    id, treatment, age, sex, bmi, dm_duration,
+    dplyr::matches("^(date|fbs)_m\\d+$")
+  ) |>
   tidyr::pivot_longer(
     cols            = dplyr::matches("^(date|fbs)_m\\d+$"),
     names_pattern   = "(date|fbs)_m(\\d+)",
@@ -163,13 +159,22 @@ dfl <- df |>
     names_transform = list(month = as.integer)
   )
 
+# The reverse move, long back to wide. names_glue rebuilds "fbs_m3" from the
+# value name and the month; names_vary = "slowest" keeps date_m0 next to
+# fbs_m0, as on the sheet. Look only, dfw is not used again.
+dfw <- dfl |>
+  tidyr::pivot_wider(
+    names_from  = month,
+    values_from = c(date, fbs),
+    names_glue  = "{.value}_m{month}",
+    names_vary  = "slowest"
+  )
+
 #%%@note step 11: drop the visits that never happened -------------------------
 
 # A visit with neither a date nor an FBS is a patient who stopped coming.
 # That is dropout, not dirt. A mixed model uses the visits that did happen,
 # which is valid when dropout depends only on values we saw (missing at random).
-message(sprintf("visits that did not happen: %d of %d",
-                sum(is.na(dfl$date) & is.na(dfl$fbs)), nrow(dfl)))
 
 dfl <- dfl |>
   dplyr::filter(!(is.na(date) & is.na(fbs)))
@@ -190,11 +195,10 @@ dfl <- dfl |>
   )
 
 fbs_fixed <- dfl |>
-  dplyr::filter(readr::parse_number(fbs_typed) < 30 | readr::parse_number(fbs_typed) > 600) |>
+  dplyr::filter(
+    readr::parse_number(fbs_typed) < 30 | readr::parse_number(fbs_typed) > 600
+  ) |>
   dplyr::select(id, month, fbs_typed, fbs)
-
-message(sprintf("FBS values converted from mmol/L or set missing: %d, id = %s",
-                nrow(fbs_fixed), paste(unique(fbs_fixed$id), collapse = ", ")))
 
 #%%@note step 13: visit dates, one habit per line -----------------------------
 
@@ -219,26 +223,32 @@ dfl <- dfl |>
 
     # a year above 2400 is Buddhist Era and loses 543
     year = as.integer(stringr::str_extract(txt, "\\d{4}")),
-    txt  = dplyr::if_else(year > 2400,
-                          stringr::str_replace(txt, "\\d{4}", as.character(year - 543)),
-                          txt, missing = txt),
+    txt = dplyr::if_else(
+      year > 2400,
+      stringr::str_replace(txt, "\\d{4}", as.character(year - 543)),
+      txt,
+      missing = txt
+    ),
 
     # two layouts are left, dd/mm/yyyy and yyyy-mm-dd
-    visit_date = dplyr::coalesce(lubridate::dmy(txt, quiet = TRUE),
-                                 lubridate::ymd(txt, quiet = TRUE)),
+    visit_date = dplyr::coalesce(
+      lubridate::dmy(txt, quiet = TRUE),
+      lubridate::ymd(txt, quiet = TRUE)
+    ),
 
     # a visit after the study closed is a mistyped year, not a real visit
-    visit_date = dplyr::if_else(visit_date > study_close, as.Date(NA), visit_date,
-                                missing = visit_date)
+    visit_date = dplyr::if_else(
+      visit_date > study_close,
+      as.Date(NA),
+      visit_date,
+      missing = visit_date
+    )
   )
 
-# anything still missing had a date typed, so say so out loud and keep the rows
+# anything still missing had a date typed; keep the rows and list them for the data collector
 date_bad <- dfl |>
   dplyr::filter(is.na(visit_date), !is.na(date)) |>
   dplyr::select(id, month, date)
-
-message(sprintf("visit dates that could not be used: %d, id = %s.\nPlease contact your data collector.",
-                nrow(date_bad), paste(unique(date_bad$id), collapse = ", ")))
 
 #%%@note step 14: time since the first visit ----------------------------------
 
@@ -251,8 +261,13 @@ dfl <- dfl |>
     days        = as.numeric(visit_date - date_m0),
     # lubridate counts real calendar months, so 15 Jan to 15 Apr is exactly 3,
     # whatever the lengths of February and March
-    time_months = round(lubridate::time_length(lubridate::interval(date_m0, visit_date),
-                                               unit = "months"), 2),
+    time_months = round(
+      lubridate::time_length(
+        lubridate::interval(date_m0, visit_date),
+        unit = "months"
+      ),
+      2
+    ),
     # a visit that lost its date keeps the planned month as its time
     time_months = dplyr::coalesce(time_months, as.numeric(month)),
     # the day the visit was due: month 0 date plus the planned months.
@@ -269,14 +284,13 @@ off_window <- dfl |>
   dplyr::filter(abs(as.numeric(visit_date - due_date)) > 21) |>
   dplyr::select(id, month, due_date, visit_date)
 
-message(sprintf("visits more than 21 days from their due date: %d, id = %s",
-                nrow(off_window), paste(unique(off_window$id), collapse = ", ")))
-
 #%%@note step 15: keep the analysis variables ---------------------------------
 
 dfl <- dfl |>
-  dplyr::select(id, treatment, age, sex, bmi, dm_duration,
-                month, visit_date, days, time_months, fbs) |>
+  dplyr::select(
+    id, treatment, age, sex, bmi, dm_duration,
+    month, visit_date, days, time_months, fbs
+  ) |>
   dplyr::arrange(id, month)
 
 #%%@note step 16: check -------------------------------------------------------
@@ -297,18 +311,10 @@ stopifnot(
   all(dfl$days >= 0, na.rm = TRUE)
 )
 
-message(sprintf("clean dataset: %d patients, %d visits", dplyr::n_distinct(dfl$id), nrow(dfl)))
-
 #%%@note step 17: describe the cleaned data ------------------------------------
 
-# Three cases. By hand it opens in the browser. Inside the book (knitr) it
-# renders in place. In a plain Rscript run it is skipped, because the HTML
-# would flood the console.
-if (interactive()) {
-  print(summarytools::dfSummary(dfl), method = "browser")
-} else if (isTRUE(getOption("knitr.in.progress"))) {
-  print(summarytools::dfSummary(dfl), method = "render")
-}
+# one look at every variable: type, values, missing and a small graph
+summarytools::dfSummary(dfl)
 
 #%%@note step 18: save --------------------------------------------------------
 

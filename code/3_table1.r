@@ -26,9 +26,6 @@ path_docx  <- "output/table1.docx"
 df_base <- readRDS(path_clean) |>
   dplyr::filter(month == 0)
 
-message(sprintf("patients: %d, drug A: %d, drug B: %d",
-                nrow(df_base), sum(df_base$treatment == "A"), sum(df_base$treatment == "B")))
-
 #%%@note step 3: the basic table ----------------------------------------------
 
 # Run this cell alone first and look at the default: gtsummary picks a

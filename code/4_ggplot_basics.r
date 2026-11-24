@@ -56,8 +56,10 @@ p_scatter
 # Put one more column into aes() and ggplot2 colours the dots by it and draws
 # the legend by itself. alpha = 0.6 makes the dots see-through, so dots that
 # overlap show up darker. size sets how big each dot is.
-p_scatter_arm <- ggplot2::ggplot(df_base, ggplot2::aes(x = dm_duration, y = fbs,
-                                                       colour = treatment)) +
+p_scatter_arm <- ggplot2::ggplot(
+  df_base,
+  ggplot2::aes(x = dm_duration, y = fbs, colour = treatment)
+) +
   ggplot2::geom_point(alpha = 0.6, size = 2)
 
 p_scatter_arm
@@ -68,8 +70,10 @@ p_scatter_arm
 # the plot uses the summary table: one row per arm per month.
 # group = treatment says which points belong to the same line, and
 # colour = treatment gives each line its own colour.
-p_line <- ggplot2::ggplot(df_mean, ggplot2::aes(x = month, y = mean_fbs,
-                                                colour = treatment, group = treatment)) +
+p_line <- ggplot2::ggplot(
+  df_mean,
+  ggplot2::aes(x = month, y = mean_fbs, colour = treatment, group = treatment)
+) +
   ggplot2::geom_line() +
   ggplot2::geom_point()
 
@@ -122,14 +126,30 @@ p_cubic
 # se = FALSE drops the confidence bands, which would hide each other here.
 p_fits <- ggplot2::ggplot(dfl, ggplot2::aes(x = time_months, y = fbs)) +
   ggplot2::geom_point(alpha = 0.15, colour = "grey50") +
-  ggplot2::geom_smooth(ggplot2::aes(colour = "Loess"),
-                       method = "loess", formula = y ~ x, se = FALSE) +
-  ggplot2::geom_smooth(ggplot2::aes(colour = "Linear"),
-                       method = "lm", formula = y ~ x, se = FALSE) +
-  ggplot2::geom_smooth(ggplot2::aes(colour = "Quadratic"),
-                       method = "lm", formula = y ~ poly(x, 2), se = FALSE) +
-  ggplot2::geom_smooth(ggplot2::aes(colour = "Cubic"),
-                       method = "lm", formula = y ~ poly(x, 3), se = FALSE) +
+  ggplot2::geom_smooth(
+    ggplot2::aes(colour = "Loess"),
+    method = "loess",
+    formula = y ~ x,
+    se = FALSE
+  ) +
+  ggplot2::geom_smooth(
+    ggplot2::aes(colour = "Linear"),
+    method = "lm",
+    formula = y ~ x,
+    se = FALSE
+  ) +
+  ggplot2::geom_smooth(
+    ggplot2::aes(colour = "Quadratic"),
+    method = "lm",
+    formula = y ~ poly(x, 2),
+    se = FALSE
+  ) +
+  ggplot2::geom_smooth(
+    ggplot2::aes(colour = "Cubic"),
+    method = "lm",
+    formula = y ~ poly(x, 3),
+    se = FALSE
+  ) +
   ggplot2::labs(colour = "Fit")
 
 p_fits
@@ -146,8 +166,10 @@ p_bar_count <- df_base |>
 
 # geom_col() draws a height you already computed, here the mean FBS.
 # factor(month) makes month a set of groups, so each visit gets its own bars.
-p_bar_mean <- ggplot2::ggplot(df_mean, ggplot2::aes(x = factor(month), y = mean_fbs,
-                                                    fill = treatment)) +
+p_bar_mean <- ggplot2::ggplot(
+  df_mean,
+  ggplot2::aes(x = factor(month), y = mean_fbs, fill = treatment)
+) +
   ggplot2::geom_col(position = "dodge")
 
 p_bar_count
@@ -236,25 +258,37 @@ p_text
 # and error bars (mean +/- SD) cover each other. position_dodge() moves each
 # arm a little to the side. Give the SAME dodge to every layer that has to
 # move together: the error bars, the lines and the points.
-p_overlap <- ggplot2::ggplot(df_mean, ggplot2::aes(x = month, y = mean_fbs,
-                                                   colour = treatment, group = treatment)) +
-  ggplot2::geom_errorbar(ggplot2::aes(ymin = mean_fbs - sd_fbs, ymax = mean_fbs + sd_fbs),
-                         width = 0.4) +
+p_overlap <- ggplot2::ggplot(
+  df_mean,
+  ggplot2::aes(x = month, y = mean_fbs, colour = treatment, group = treatment)
+) +
+  ggplot2::geom_errorbar(
+    ggplot2::aes(ymin = mean_fbs - sd_fbs, ymax = mean_fbs + sd_fbs),
+    width = 0.4
+  ) +
   ggplot2::geom_line() +
   ggplot2::geom_point(size = 2.5) +
   ggplot2::theme_classic()
 
 dodge <- ggplot2::position_dodge(width = 0.8)
 
-p_dodged <- ggplot2::ggplot(df_mean, ggplot2::aes(x = month, y = mean_fbs,
-                                                  colour = treatment, group = treatment)) +
-  ggplot2::geom_errorbar(ggplot2::aes(ymin = mean_fbs - sd_fbs, ymax = mean_fbs + sd_fbs),
-                         width = 0.4, position = dodge) +
+p_dodged <- ggplot2::ggplot(
+  df_mean,
+  ggplot2::aes(x = month, y = mean_fbs, colour = treatment, group = treatment)
+) +
+  ggplot2::geom_errorbar(
+    ggplot2::aes(ymin = mean_fbs - sd_fbs, ymax = mean_fbs + sd_fbs),
+    width = 0.4,
+    position = dodge
+  ) +
   ggplot2::geom_line(position = dodge) +
   ggplot2::geom_point(size = 2.5, position = dodge) +
   ggplot2::scale_x_continuous(breaks = c(0, 3, 6, 9, 12)) +
-  ggplot2::labs(x = "Month since enrolment", y = "Fasting blood sugar (mg/dL), mean (SD)",
-                colour = "Drug") +
+  ggplot2::labs(
+    x = "Month since enrolment",
+    y = "Fasting blood sugar (mg/dL), mean (SD)",
+    colour = "Drug"
+  ) +
   ggplot2::theme_classic() +
   bold_text
 
@@ -267,14 +301,23 @@ p_dodged
 # other. position_jitterdodge() first puts the arms side by side (dodge) and
 # then spreads the dots of each arm a little sideways (jitter), so every
 # patient can be seen. factor(month) makes each visit a group to dodge within.
-p_raw_dodged <- ggplot2::ggplot(dfl, ggplot2::aes(x = factor(month), y = fbs,
-                                                  colour = treatment)) +
-  ggplot2::geom_point(alpha = 0.5,
-                      position = ggplot2::position_jitterdodge(jitter.width = 0.2,
-                                                               dodge.width = 0.8,
-                                                               seed = 123)) +
-  ggplot2::labs(x = "Month since enrolment", y = "Fasting blood sugar (mg/dL)",
-                colour = "Drug") +
+p_raw_dodged <- ggplot2::ggplot(
+  dfl,
+  ggplot2::aes(x = factor(month), y = fbs, colour = treatment)
+) +
+  ggplot2::geom_point(
+    alpha = 0.5,
+    position = ggplot2::position_jitterdodge(
+      jitter.width = 0.2,
+      dodge.width = 0.8,
+      seed = 123
+    )
+  ) +
+  ggplot2::labs(
+    x = "Month since enrolment",
+    y = "Fasting blood sugar (mg/dL)",
+    colour = "Drug"
+  ) +
   ggplot2::theme_classic() +
   bold_text
 
@@ -287,10 +330,16 @@ p_raw_dodged
 # the file small without losing anything. width and height are in inches.
 dir.create("output/figures", showWarnings = FALSE)
 
-ggplot2::ggsave(path_fig, p_dodged, device = ragg::agg_tiff,
-                width = 7, height = 4.5, units = "in", dpi = 300, compression = "lzw")
-
-message(sprintf("figure saved: %s", path_fig))
+ggplot2::ggsave(
+  path_fig,
+  p_dodged,
+  device = ragg::agg_tiff,
+  width = 7,
+  height = 4.5,
+  units = "in",
+  dpi = 300,
+  compression = "lzw"
+)
 
 #%%@note step 18: check -------------------------------------------------------
 
