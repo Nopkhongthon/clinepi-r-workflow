@@ -1,0 +1,187 @@
+# Propensity score: the effect of drug B {#sec-ps-effect}
+
+```{r}
+#| label: setup-ps-effect
+#| include: false
+source("_common.R")
+load_steps("code/7_ps_effect.r", "pseff")
+```
+
+| | |
+|---|---|
+| **Script** | `code/7_ps_effect.r` |
+| **In** | `output/ps_cohort.rds`, from chapter 5 |
+| **Out** | `output/ps_effect.rds`, one row per method with B minus A, the 95% CI and the p value |
+| **How to run** | Step by step, after scripts 5 and 6 |
+
+Chapter 6 showed that the weights balance the confounders. Now the effect itself. Six methods answer the same question, and every one ends with the same kind of number, a marginal effect.
+
+The data are a mock-up, so the truth is known. Drug B lowers FBS at month 6 by **15 mg/dL** compared with drug A.
+
+## Marginal and conditional effects
+
+| | Conditional effect | Marginal effect |
+|---|---|---|
+| **Answers** | For a patient with these covariates, how much does B change FBS? | If everyone got B instead of A, how much would the average FBS change? |
+| **Comes from** | A model coefficient | emmeans, averaged over every patient |
+| **Matches** | The model | The average treatment effect (ATE), the target of the weights in chapter 5 |
+
+The two agree in a linear model with no interaction, as in steps 4 and 5. They differ once the drug effect varies across patients (step 6) or the model is not linear, such as logistic regression. The marginal effect is the one that answers the clinical question, so every method reports it.
+
+emmeans gets it by counterfactual prediction. Every patient is predicted twice.
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 7
+flowchart LR
+  D["600 patients<br/>as they are"] --> A["Everyone set to drug A<br/>predict FBS month 6"]
+  D --> B["Everyone set to drug B<br/>predict FBS month 6"]
+  A --> MA["Average = mean FBS<br/>if all got A"]
+  B --> MB["Average = mean FBS<br/>if all got B"]
+  MA --> E["B minus A<br/>the marginal effect"]
+  MB --> E
+```
+
+## Step 1: packages and paths
+
+| Package | Its one job here |
+|---|---|
+| dplyr [@R-dplyr] | The verbs |
+| ggplot2 [@R-ggplot2] | The forest plot |
+| emmeans [@R-emmeans] | `emmeans()` and `contrast()`, the marginal effect |
+| survey [@R-survey] | `svydesign()` and `svyglm()`, the weighted model with a robust SE |
+| MatchIt [@R-MatchIt] | `matchit()`, propensity score matching |
+| optmatch [@R-optmatch] | Does the full matching for MatchIt. Installed, not loaded. |
+| sandwich [@R-sandwich] | `vcovCL()`, an SE that respects the matched sets |
+| broom [@R-broom] | `tidy()`, each contrast as one row |
+| forcats [@R-forcats] | `fct_inorder()`, the methods in table order in the plot |
+
+`truth` holds the true effect, −15 mg/dL, for the plot and the checks.
+
+```{r}
+#| label: pseff-step-1
+#| message: false
+```
+
+## Step 2: import
+
+The PS methods in steps 5 to 8 use only the patients inside common support, from chapter 5.
+
+```{r}
+#| label: pseff-step-2
+```
+
+That leaves `r nrow(df_cs)` of `r nrow(df)` patients in `df_cs`.
+
+## Step 3: crude, no adjustment
+
+The plain difference in mean FBS at month 6. `method = "revpairwise"` takes the second level minus the first, so B minus A.
+
+```{r}
+#| label: pseff-step-3
+```
+
+The crude difference is only `r round(summary(con_crude)$estimate, 1)` mg/dL. Drug B went to the patients with higher FBS at month 0, and that hides most of its effect.
+
+## Step 4: multivariable regression
+
+The outcome model adjusts for the five confounders directly, with no PS. `counterfactual = "treatment"` makes emmeans predict every patient on drug A and on drug B.
+
+```{r}
+#| label: pseff-step-4
+```
+
+| emmeans output | Means |
+|---|---|
+| `A  145` | Mean FBS at month 6 if all `r nrow(df)` patients had got drug A |
+| `B  130` | Mean FBS at month 6 if all `r nrow(df)` patients had got drug B |
+| "averaged over the levels of: actual_treatment" | The average runs over every patient, whichever drug they actually got |
+| `B - A` | The marginal effect, `r round(summary(con_multi)$estimate, 1)` mg/dL |
+
+## Step 5: PS as a covariate
+
+One number, the PS, stands in for all five confounders.
+
+```{r}
+#| label: pseff-step-5
+```
+
+## Step 6: PS strata
+
+| | |
+|---|---|
+| **Strata** | `ntile(ps, 5)` cuts the PS into five groups of equal size (quintiles) |
+| **Inside one stratum** | A and B patients have similar PS, so they are comparable |
+| **The model** | `treatment * ps_strata` gives a separate B minus A in each stratum |
+| **The coefficient of drug B** | The effect in stratum 1 only, a conditional effect |
+| **The marginal effect** | The five stratum effects averaged over all patients |
+
+This is where the marginal effect matters most. Reading the coefficient would report stratum 1 and ignore the other four.
+
+```{r}
+#| label: pseff-step-6
+```
+
+## Step 7: IPTW
+
+The weight from chapter 5 builds the pseudo-population. `svyglm()` gives a robust (sandwich) SE, because the weights are not real patient counts. The model holds only the drug, so no counterfactual is needed. The two emmeans are already the weighted mean FBS of the pseudo-population.
+
+```{r}
+#| label: pseff-step-7
+```
+
+## Step 8: PS full matching
+
+| | |
+|---|---|
+| **`method = "full"`** | Every patient goes into a matched set with at least one A and one B of similar PS. Nobody is thrown away. |
+| **`estimand = "ATE"`** | The same target as the other methods |
+| **`match.data()`** | Returns the cohort plus `weights`, the matching weight, and `subclass`, the matched set |
+| **`vcovCL(cluster = ~subclass)`** | Patients in one matched set are not independent, so the SE is clustered by set |
+
+```{r}
+#| label: pseff-step-8
+```
+
+## Step 9: all methods side by side
+
+`broom::tidy()` turns each contrast into one row, and `bind_rows()` stacks them.
+
+```{r}
+#| label: pseff-step-9
+```
+
+```{r}
+#| echo: false
+effect_table |>
+  dplyr::mutate(
+    p = gtsummary::style_pvalue(p.value, digits = 3),
+    p = dplyr::if_else(p.value < 0.05, paste0("**", p, "**"), p),
+    `B minus A (95% CI), mg/dL` = sprintf("%.1f (%.1f to %.1f)", estimate, conf.low, conf.high)
+  ) |>
+  dplyr::select(Method = method, `B minus A (95% CI), mg/dL`, `p value` = p) |>
+  knitr::kable(align = "lrr")
+```
+
+## Step 10: forest plot against the truth
+
+The dashed line is the truth, −15 mg/dL. The solid line is no effect.
+
+```{r}
+#| label: pseff-step-10
+#| fig-height: 3.5
+```
+
+| Method | What the plot shows |
+|---|---|
+| Crude | Misses the truth and crosses no effect. Confounding by indication. |
+| The five adjusted methods | Every 95% CI covers −15 |
+| IPTW | The widest CI. A few large weights cost precision, as the effective sample size in chapter 6 warned. |
+
+## Step 11: check and save
+
+The checks hold what the simulation promised. Every adjusted CI covers the truth, and the crude CI does not.
+
+```{r}
+#| label: pseff-step-11
+```

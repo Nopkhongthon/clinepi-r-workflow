@@ -1,0 +1,147 @@
+# Propensity score: the model and the weights {#sec-ps-model}
+
+```{r}
+#| label: setup-ps-model
+#| include: false
+source("_common.R")
+load_steps("code/5_ps_model.r", "psmodel")
+```
+
+| | |
+|---|---|
+| **Script** | `code/5_ps_model.r` |
+| **In** | `data/fbs_mockup_cohort.xlsx`, one row per patient |
+| **Out** | `output/ps_cohort.rds`, the cohort with the propensity score, the weight and common support |
+| **How to run** | Step by step. Each step adds a column to `df`. |
+
+This chapter leaves the trial. A propensity score answers a question about patients who were **not** randomised, so it needs a different data set. The cohort is a mock-up made for teaching. No real patient is involved.
+
+## The question and the cohort
+
+| | |
+|---|---|
+| **Question** | Does drug B lower FBS at month 6 more than drug A? |
+| **Design** | Retrospective cohort. The doctor chose the drug. |
+| **Patients** | 600, one row each. Drug A 346, drug B 254. |
+| **Outcome** | `fbs_m6`, fasting blood sugar at month 6 (mg/dL) |
+| **Confounders** | Age, sex, BMI, diabetes duration, FBS at month 0 |
+
+The doctor chose drug B more often for patients whose diabetes looked worse. So the two groups differ before the drug is even started. This is confounding by indication. A plain comparison of month 6 FBS mixes the effect of the drug with the effect of who got it.
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 6
+flowchart LR
+  C["Confounders<br/>age, sex, BMI,<br/>DM duration, FBS month 0"] --> T["Drug<br/>A or B"]
+  C --> Y["FBS<br/>month 6"]
+  T --> Y
+```
+
+The propensity score (PS) is each patient's probability of getting drug B, given the confounders. Patients with the same PS are comparable, whichever drug they actually got.
+
+| Script | Job |
+|---|---|
+| 5 (this chapter) | Build the PS, the weights and common support |
+| 6 (next chapter) | Check that the weights balance the confounders |
+| 7 | Estimate the effect of drug B |
+
+## Step 1: packages and paths
+
+| Package | Its one job here |
+|---|---|
+| readxl [@R-readxl] | Read the Excel sheet |
+| dplyr [@R-dplyr] | The verbs |
+| ggplot2 [@R-ggplot2] | The overlap histogram |
+
+```{r}
+#| label: psmodel-step-1
+#| message: false
+```
+
+## Step 2: import
+
+This sheet is already clean, so the types are set straight away. Drug A is the first level of `treatment`, so the model in step 3 gives the probability of drug B.
+
+```{r}
+#| label: psmodel-step-2
+```
+
+```{r}
+#| echo: false
+peek(df)
+```
+
+## Step 3: the propensity score model
+
+A logistic regression of the drug on the confounders.
+
+| Goes into the PS model | Stays out |
+|---|---|
+| Variables that made the doctor choose B **and** change FBS at month 6 | The outcome, `fbs_m6` |
+| Age, sex, BMI, diabetes duration, FBS at month 0 | Anything measured after the drug was started |
+
+The PS describes who got which drug, not what happened afterwards. So the outcome is never in this model.
+
+```{r}
+#| label: psmodel-step-3
+```
+
+## Step 4: each patient's propensity score
+
+`predict()` with `type = "response"` gives a probability between 0 and 1. Without it, `predict()` gives the log odds.
+
+```{r}
+#| label: psmodel-step-4
+```
+
+```{r}
+#| echo: false
+peek(dplyr::select(df, id, treatment, age, fbs_m0, ps))
+```
+
+## Step 5: the weights, ATE
+
+Inverse probability of treatment weighting (IPTW). Each patient is weighted by the probability of the drug they **actually** got.
+
+| Patient got | Weight | Example |
+|---|---|---|
+| Drug B | $1 / \text{PS}$ | PS = 0.2, so the weight is 5 |
+| Drug A | $1 / (1 - \text{PS})$ | PS = 0.2, so the weight is 1.25 |
+
+A patient on drug B with a PS of 0.2 was unusual for B, so stands in for 5 patients. A patient on drug A with the same PS was typical for A, so stands in for little more than one.
+
+This weight answers the average treatment effect (ATE), namely everyone on drug B compared with everyone on drug A.
+
+```{r}
+#| label: psmodel-step-5
+```
+
+## Step 6: overlap, the PS of each group
+
+| What to look for | Why |
+|---|---|
+| Drug B sits to the right of drug A | Confounding by indication. B went to the sicker patients. |
+| The two histograms still overlap | Where only one group exists, nobody can be compared. This is the positivity assumption. |
+
+```{r}
+#| label: psmodel-step-6
+#| fig-height: 3.5
+```
+
+## Step 7: common support
+
+Common support is the PS range where both groups have patients. It runs from the larger of the two minimums to the smaller of the two maximums.
+
+```{r}
+#| label: psmodel-step-7
+```
+
+Common support runs from `r round(cs_low, 2)` to `r round(cs_high, 2)`. `r nrow(off_support)` patients fall outside it, and they stay in `off_support` to look at. The column `comsup` marks each patient, so a later analysis can keep only those inside.
+
+## Step 8: check and save
+
+The checks repeat what is already known. 600 patients, every PS strictly between 0 and 1, and every weight at least 1.
+
+```{r}
+#| label: psmodel-step-8
+```

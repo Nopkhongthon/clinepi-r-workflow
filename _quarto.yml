@@ -30,6 +30,10 @@ format:
     toc-depth: 2
     toc-location: left
     toc-title: Contents
+    other-links:
+      - text: Code and data on GitHub
+        href: https://github.com/Nopkhongthon/clinepi-r-workflow
+        icon: github
     number-sections: true
     fig-width: 7
     fig-height: 4

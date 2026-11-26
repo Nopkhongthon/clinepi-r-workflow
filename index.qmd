@@ -20,6 +20,12 @@ engine: knitr
 
 {{< include _04-ggplot.qmd >}}
 
+{{< include _05-ps-model.qmd >}}
+
+{{< include _06-ps-balance.qmd >}}
+
+{{< include _07-ps-effect.qmd >}}
+
 {{< include _05-next.qmd >}}
 
 {{< include _a-stata-map.qmd >}}

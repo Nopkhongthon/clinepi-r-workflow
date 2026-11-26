@@ -1,0 +1,127 @@
+# Propensity score: is the weighted cohort balanced? {#sec-ps-balance}
+
+```{r}
+#| label: setup-ps-balance
+#| include: false
+source("_common.R")
+load_steps("code/6_ps_balance.r", "psbal")
+```
+
+| | |
+|---|---|
+| **Script** | `code/6_ps_balance.r` |
+| **In** | `output/ps_cohort.rds`, from chapter 5 |
+| **Out** | `output/ps_balance.rds`, the cobalt balance table |
+| **How to run** | Step by step, after script 5 |
+
+The weights from chapter 5 are meant to make drug A and drug B look alike on the confounders, as if the drug had been given at random. This chapter checks whether they did. If the groups are still unbalanced after weighting, the effect in script 7 is still confounded. So this check comes first.
+
+## The yardstick, the standardised mean difference
+
+$$
+\text{SMD} = \frac{\bar{x}_B - \bar{x}_A}{\sqrt{(s_A^2 + s_B^2) / 2}}
+$$
+
+| | SMD | p-value |
+|---|---|---|
+| **Measures** | The size of the gap, in SD units | Whether the gap could be chance |
+| **Depends on sample size** | No | Yes. A big cohort makes a tiny gap "significant". |
+| **Balanced when** | Absolute SMD below 0.1 | Not used for balance |
+
+The sign only says which drug has the higher mean. Read the size.
+
+## Step 1: packages and paths
+
+| Package | Its one job here |
+|---|---|
+| dplyr [@R-dplyr] | The verbs |
+| ggplot2 [@R-ggplot2] | `theme_classic()` on the cobalt plots |
+| cobalt [@R-cobalt] | `bal.tab()`, `love.plot()` and `bal.plot()`, balance for PS work |
+| gtsummary [@R-gtsummary] | Table 1 with an SMD column |
+| survey [@R-survey] | `svydesign()`, the weighted cohort for the weighted Table 1 |
+
+```{r}
+#| label: psbal-step-1
+#| message: false
+```
+
+## Step 2: import
+
+```{r}
+#| label: psbal-step-2
+```
+
+## Step 3: SMD before and after weighting
+
+The formula holds the same five confounders that went into the PS model.
+
+| Argument | What it does |
+|---|---|
+| `weights = "weight"` | The IPTW weight from chapter 5 |
+| `estimand = "ATE"` | The weights target everyone, as in chapter 5 |
+| `un = TRUE` | Adds the column before weighting (`Diff.Un`) beside the column after (`Diff.Adj`) |
+| `s.d.denom = "pooled"` | Divides by the pooled SD of the two drugs |
+| `binary = "std"` | Gives sex an SMD too, not a raw difference in proportions |
+| `thresholds = c(m = 0.1)` | Adds a column that says Balanced or Not Balanced |
+
+cobalt takes B minus A. A positive SMD means drug B has the higher mean.
+
+```{r}
+#| label: psbal-step-3
+```
+
+Before weighting, the largest gap is FBS at month 0, SMD `r round(bal$Balance["fbs_m0", "Diff.Un"], 2)`. After weighting, every absolute SMD is below `r ceiling(max(abs(bal$Balance$Diff.Adj)) * 100) / 100`. `still_unbalanced` keeps any confounder at 0.1 or above, and it has `r nrow(still_unbalanced)` rows.
+
+## Step 4: love plot
+
+One dot per confounder, before weighting (Unadjusted) and after (Adjusted). Every Adjusted dot should sit left of the dashed line at 0.1.
+
+```{r}
+#| label: psbal-step-4
+#| fig-height: 3.5
+```
+
+## Step 5: mirror histogram, the PS before and after weighting
+
+Drug A on top, drug B below. The left panel is the raw cohort. The right panel is the weighted cohort, the pseudo-population. After weighting, the two halves should look like mirror images.
+
+```{r}
+#| label: psbal-step-5
+```
+
+## Step 6: effective sample size
+
+Large weights mean a few patients stand in for many. The weighted cohort then carries less information than its row count. The effective sample size (ESS) says how many unweighted patients it is worth.
+
+```{r}
+#| label: psbal-step-6
+```
+
+| Drug | Patients | ESS | Kept |
+|---|---|---|---|
+| A | `r bal$Observations["Unadjusted", "A"]` | `r round(bal$Observations["Adjusted", "A"])` | `r round(100 * bal$Observations["Adjusted", "A"] / bal$Observations["Unadjusted", "A"])`% |
+| B | `r bal$Observations["Unadjusted", "B"]` | `r round(bal$Observations["Adjusted", "B"])` | `r round(100 * bal$Observations["Adjusted", "B"] / bal$Observations["Unadjusted", "B"])`% |
+
+A big drop from the number of patients warns that the estimate in script 7 will be imprecise.
+
+## Step 7: Table 1 with SMD, before and after weighting
+
+The same Table 1 twice, side by side. `add_difference()` with `"smd"` adds one SMD per row. There are no p values, because the question is the size of the gap, not chance.
+
+| | Before weighting | After weighting |
+|---|---|---|
+| **Built with** | `tbl_summary()` on `df` | `tbl_svysummary()` on `df_svy` |
+| **N in the header** | Patients | Sum of the weights, the pseudo-population |
+| **SMD sign** | A minus B, the opposite of cobalt | A minus B |
+
+`svydesign()` tells gtsummary that each row counts as `weight` patients. `modify_column_hide()` drops the CI of the SMD, which nobody reads here. `tbl_merge()` puts the two tables side by side.
+
+```{r}
+#| label: psbal-step-7
+```
+
+## Step 8: check and save
+
+```{r}
+#| label: psbal-step-8
+```

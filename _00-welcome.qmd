@@ -4,7 +4,7 @@ This is a small site about how I do clinical-epidemiology analysis in R. It is w
 
 The site grows over time. New chapters are added as the workflow goes further, so check the date at the top for the last update.
 
-Everything runs on one trial. Two drugs, A and B, are compared on fasting blood sugar (FBS) at months 0, 3, 6, 9 and 12. Each patient has up to five rows, so the visits of one patient are correlated. The data are a mock-up made for teaching. No real patient is involved. The file `data/README.md` describes the sheet and its layout.
+Chapters 1 to 4 run on one trial. Two drugs, A and B, are compared on fasting blood sugar (FBS) at months 0, 3, 6, 9 and 12. Each patient has up to five rows, so the visits of one patient are correlated. The data are a mock-up made for teaching. No real patient is involved. The file `data/README.md` describes the sheet and its layout. Chapters 5 to 7 move to a mock-up cohort of 600 patients who were not randomised, to teach the propensity score.
 
 Each chapter takes one script and walks through it step by step. The code you read is loaded straight from the script file, so it is the code that ran. The output sits right under it. The script files keep their comments, and the page moves the ideas of those comments into the text beside the code.
 
@@ -20,6 +20,9 @@ flowchart LR
   B --> C["Explore<br/>tables and plots"]
   C --> D["Table 1"]
   D -.-> E["Mixed model<br/>(coming)"]
+  G["Cohort sheet<br/>(mock-up data)"] --> H["Propensity score<br/>and weights"]
+  H --> I["Balance check"]
+  I --> J["Effect of drug B<br/>marginal effect"]
   E -.-> F["more to come"]
   style E stroke-dasharray: 5 5
   style F stroke-dasharray: 5 5
@@ -31,14 +34,18 @@ flowchart LR
 | 2 Exploring the data | `code/2_basic_explore.r` | Tables and plots, with epicalc and ggplot2 |
 | 3 Table 1 with gtsummary | `code/3_table1.r` | A publication style baseline table |
 | 4 Plots with ggplot2 | `code/4_ggplot_basics.r` | Basic plots, fitted curves, themes, axes and text, dodging |
-| Coming next | | Mixed models for the repeated visits, then more |
+| 5 Propensity score: the model and the weights | `code/5_ps_model.r` | PS model, IPTW weights, overlap and common support |
+| 6 Propensity score: is the weighted cohort balanced? | `code/6_ps_balance.r` | SMD, love plot, mirror histogram, effective sample size, Table 1 with SMD |
+| 7 Propensity score: the effect of drug B | `code/7_ps_effect.r` | Marginal effect with emmeans from six methods, against the known truth |
+| Coming next | | Mixed models for the repeated visits |
 
 ## Packages {.unnumbered}
 
 ```r
 install.packages(c("dplyr", "tidyr", "readr", "stringr", "lubridate",
                    "readxl", "janitor", "ggplot2", "rstatix", "gtsummary", "gt",
-                   "summarytools", "ragg", "knitr", "rmarkdown"))
+                   "summarytools", "ragg", "cobalt", "survey", "emmeans", "MatchIt", "optmatch",
+                   "sandwich", "broom", "forcats", "knitr", "rmarkdown"))
 install.packages("epicalc", repos = c("https://medipe.psu.ac.th/epicalc",
                                       "https://cloud.r-project.org"))
 ```
@@ -47,15 +54,18 @@ The epicalc package is no longer on CRAN, so it comes from the repository above.
 
 ## How to run it {.unnumbered}
 
-Get the pack from GitHub. Click the green Code button, then Download ZIP, and unzip the folder. Open that folder as the project in Positron or RStudio, so that every path in the scripts starts from the project folder.
+Get the pack from GitHub, at <https://github.com/Nopkhongthon/clinepi-r-workflow>. Click the green Code button, then Download ZIP, and unzip the folder. Open that folder as the project in Positron or RStudio, so that every path in the scripts starts from the project folder.
 
-Run the four scripts in this order. Then build the page.
+Run the seven scripts in this order. Then build the page.
 
 ```sh
 Rscript code/1_clean_data.r
 Rscript code/2_basic_explore.r
 Rscript code/3_table1.r
 Rscript code/4_ggplot_basics.r
+Rscript code/5_ps_model.r
+Rscript code/6_ps_balance.r
+Rscript code/7_ps_effect.r
 quarto render
 ```
 

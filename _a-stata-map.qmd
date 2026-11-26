@@ -28,5 +28,16 @@ Only commands that the scripts in this workflow use are listed.
 | `reshape wide` | `tidyr::pivot_wider()` | 2 |
 | `date()` and `mdy()` | `lubridate::dmy()` and `lubridate::ymd()` | 1 |
 | `assert` | `stopifnot()` | 1 |
+| `logit treatment age i.sex bmi ...` | `glm(family = binomial(link = "logit"))` | 5 |
+| `predict ps, pr` | `predict(type = "response")` | 5 |
+| `gen w = cond(treat, 1/ps, 1/(1-ps))` | `dplyr::mutate()` with `case_when()` | 5 |
+| `psgraph`, `twoway histogram ps, by(treat)` | `ggplot2::geom_histogram()` | 5 |
+| `tebalance summarize`, `pstest` | `cobalt::bal.tab()` | 6 |
+| `tebalance density` | `cobalt::bal.plot()` | 6 |
+| `[pweight = w]` | `survey::svydesign(weights = ~weight)` | 6 |
+| `regress fbs_m6 i.treatment ... , vce(robust)` with `[pweight = w]` | `survey::svyglm()` | 7 |
+| `margins treatment` / `margins r.treatment` | `emmeans::emmeans(counterfactual = )` and `contrast(method = "revpairwise")` | 7 |
+| `teffects ipw`, `teffects psmatch` | `survey::svyglm()`, `MatchIt::matchit()` | 7 |
+| `xtile ps5 = ps, nq(5)` | `dplyr::ntile(ps, 5)` | 7 |
 | `save` | `saveRDS()` | 1 |
 | `table1_mc` (user written baseline table) | `gtsummary::tbl_summary()` | 3 |

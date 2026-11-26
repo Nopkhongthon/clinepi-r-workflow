@@ -1,13 +1,17 @@
 # A clinical-epidemiology workflow in R
 
 A small, readable workflow for a repeated-measures trial, starting from messy Excel.
-It grows chapter by chapter. It now reaches Table 1 and ggplot2, and mixed models come next.
+It grows chapter by chapter. It now reaches Table 1, ggplot2 and the propensity score (model, weights, balance and the marginal effect of drug B). Mixed models come next.
 The data follow a trial of two drugs (A and B) and fasting blood sugar (FBS) over 12 months.
 Each script is one stage. The single page `docs/index.html` walks through them with real output. It opens with a double-click, no server needed.
 
 This is a teaching pack. It holds the data, the scripts and the page. It is not an R package.
 
 The data are a mock-up made for teaching. No real patient is involved. See `data/README.md` for the layout of the sheet.
+
+## Read the page online
+
+<https://nopkhongthon.github.io/clinepi-r-workflow/>
 
 ## Get the pack
 
@@ -16,7 +20,7 @@ On the GitHub page, click the green Code button, then Download ZIP. Unzip the fo
 ## Packages
 
 ```r
-install.packages(c("dplyr", "tidyr", "readr", "stringr", "lubridate", "readxl", "janitor", "ggplot2", "rstatix", "gtsummary", "gt", "summarytools", "ragg", "knitr", "rmarkdown"))
+install.packages(c("dplyr", "tidyr", "readr", "stringr", "lubridate", "readxl", "janitor", "ggplot2", "rstatix", "gtsummary", "gt", "summarytools", "ragg", "cobalt", "survey", "emmeans", "MatchIt", "optmatch", "sandwich", "broom", "forcats", "knitr", "rmarkdown"))
 install.packages("epicalc", repos = c("https://medipe.psu.ac.th/epicalc",
                                       "https://cloud.r-project.org"))
 ```
@@ -32,6 +36,9 @@ Rscript code/1_clean_data.r                 # dirty Excel -> output/fbs_clean.rd
 Rscript code/2_basic_explore.r              # tables and plots
 Rscript code/3_table1.r                     # Table 1
 Rscript code/4_ggplot_basics.r              # ggplot2 lesson, saves output/figures/*.tiff
+Rscript code/5_ps_model.r                   # propensity score and weights
+Rscript code/6_ps_balance.r                 # balance check
+Rscript code/7_ps_effect.r                  # effect of drug B, marginal effect
 quarto render                               # build the page into docs/index.html
 ```
 
